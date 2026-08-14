@@ -1,0 +1,4 @@
+1. Install DomPDF
+composer require barryvdh/laravel-dompdf
+
+For Laravel 10/11+, auto-discovery will register the service provider automatically.

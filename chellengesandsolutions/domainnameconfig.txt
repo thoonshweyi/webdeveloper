@@ -1,0 +1,7 @@
+=>Creating Separate Domain Config File
+    global@global:/etc/nginx/sites-available$
+
+    mkdir 
+
+
+    sudo ln -s /etc/nginx/sites-available/example.com.conf /etc/nginx/sites-enabled/

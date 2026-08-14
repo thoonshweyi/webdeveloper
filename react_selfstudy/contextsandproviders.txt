@@ -1,0 +1,397 @@
+Step 0: Forget “Context” and “Provider” for a moment
+
+First, answer this simple question in your head:
+
+How does a child component get data from a parent in React?
+
+The only way you know right now:
+
+👉 props
+
+function Parent() {
+  return <Child name="Alice" />;
+}
+
+function Child({ name }) {
+  return <h1>{name}</h1>;
+}
+
+
+✔ This makes sense
+✔ This is how React normally works
+
+Step 1: The Real Problem (Very Concrete)
+
+Now imagine this:
+
+App
+ └── Layout
+     └── Header
+         └── Profile
+
+
+You want Profile to know the user name.
+
+Without Context, you must do this:
+<App user="Alice">
+  <Layout user="Alice">
+    <Header user="Alice">
+      <Profile user="Alice" />
+    </Header>
+  </Layout>
+</App>
+
+
+😖 You are passing user through components that do not need it.
+
+This problem is called prop drilling.
+
+Step 2: What React Context REALLY Is (Plain English)
+
+Context is a way to put data somewhere, so any child can read it, without passing props.
+
+That’s it.
+No magic. No extra meaning.
+
+Step 3: Think of Context Like a “Box”
+
+Imagine this:
+
+You put a value in a box
+
+Any child component can open the box and read the value
+
+That box is Context.
+
+Step 4: Creating the Box (Context)
+const UserContext = React.createContext();
+
+
+This line means:
+
+“React, please create a box named UserContext.”
+
+That’s ALL it does.
+
+❗ At this point:
+
+The box is empty
+
+No data inside yet
+
+Step 5: What Is a Provider? (This Is the Key)
+Provider = the thing that puts data into the box
+
+Without Provider → the box is empty
+With Provider → the box has data
+
+Step 6: Putting Data Into the Box (Provider)
+<UserContext.Provider value="Alice">
+  <Profile />
+</UserContext.Provider>
+
+
+Read this in English:
+
+“Put the value Alice into UserContext, and let Profile read it.”
+
+📌 Provider does only one job:
+👉 Put data into Context
+
+Step 7: Reading From the Box (useContext)
+
+Inside Profile:
+
+const user = useContext(UserContext);
+
+
+Read this as:
+
+“Give me the value stored in UserContext.”
+
+Now user === "Alice".
+
+Step 8: Full Working Example (Very Small)
+import { createContext, useContext } from "react";
+
+const UserContext = createContext();
+
+function Profile() {
+  const user = useContext(UserContext);
+  return <h1>Hello {user}</h1>;
+}
+
+function App() {
+  return (
+    <UserContext.Provider value="Alice">
+      <Profile />
+    </UserContext.Provider>
+  );
+}
+
+What’s happening:
+
+Context is created → empty box
+
+Provider puts "Alice" in the box
+
+Profile reads from the box
+
+Step 9: Why We Even Need Provider
+
+If you remove the Provider:
+
+function App() {
+  return <Profile />;
+}
+
+
+Then:
+
+const user = useContext(UserContext); // ❌ undefined
+
+
+Because:
+👉 No one put data in the box
+
+Step 10: Why We Don’t Just Use Props
+
+With props:
+
+You must pass data step by step
+
+With context:
+
+Any child can read it directly
+
+This is the only reason Context exists.
+
+Step 11: Real-Life Analogy (Very Simple)
+Props
+
+📦 You hand a note from person to person
+
+Context
+
+📢 You announce something in a room
+Anyone inside the room can hear it
+
+Provider = the person making the announcement
+Context = the room
+useContext = listening
+
+Step 12: ONE RULE (Very Important)
+
+A component can read Context ONLY if it is inside the Provider.
+
+Outside = no data
+Inside = data available
+
+Step 13: When You Should Use Context
+
+Use Context ONLY when:
+
+Many components need the same data
+
+That data doesn’t change every second
+
+Examples:
+
+Logged-in user
+
+Theme (dark/light)
+
+
+-----------------------------------------------------------------------------------------------------------------------------------
+=>Context Performance
+Step 1️⃣ Create a Context (empty box)
+const NumberContext = React.createContext();
+
+
+This just creates the box.
+Nothing inside yet.
+
+Step 2️⃣ Create a Provider with INITIAL value
+function NumberProvider({ children }) {
+  const [number, setNumber] = React.useState(1);
+
+  return (
+    <NumberContext.Provider value={number}>
+      {children}
+    </NumberContext.Provider>
+  );
+}
+
+What is happening RIGHT NOW?
+
+number starts as 1
+
+Provider gives value = 1
+
+This is the initial provider value
+
+✅ You are correct: nothing changes yet
+
+Step 3️⃣ Child reads the value
+function Child() {
+  const number = React.useContext(NumberContext);
+  console.log("Child render, number =", number);
+
+  return <h1>{number}</h1>;
+}
+
+Step 4️⃣ App setup
+function App() {
+  return (
+    <NumberProvider>
+      <Child />
+    </NumberProvider>
+  );
+}
+
+🕒 TIME = 0 (Initial render)
+
+What happens:
+
+Provider renders
+
+number = 1
+
+Provider gives value = 1
+
+Child reads 1
+
+Child renders
+
+Console:
+
+Child render, number = 1
+
+
+Everything is calm.
+
+NOW — how does it change later?
+
+👉 Only one way:
+state update inside the Provider
+
+Let’s add that.
+
+Step 5️⃣ Add a button INSIDE the Provider
+function NumberProvider({ children }) {
+  const [number, setNumber] = React.useState(1);
+
+  return (
+    <NumberContext.Provider value={number}>
+      <button onClick={() => setNumber(2)}>
+        Change Number
+      </button>
+      {children}
+    </NumberContext.Provider>
+  );
+}
+
+🕒 TIME = 1 (User clicks the button)
+
+User clicks Change Number
+
+This happens:
+
+setNumber(2) is called
+
+State changes: 1 → 2
+
+Provider re-renders
+
+Step 6️⃣ Provider renders AGAIN
+
+Now inside Provider:
+
+number = 2
+
+
+So Provider gives:
+
+value = 2
+
+
+⚠️ This is the key moment:
+
+The Provider value has changed
+
+Step 7️⃣ What React does next
+
+React says:
+
+“The Context value changed from 1 to 2”
+
+So React:
+
+Finds all components using NumberContext
+
+Re-renders them
+
+Step 8️⃣ Child re-renders
+
+Child runs again:
+
+const number = useContext(NumberContext);
+
+
+Now:
+
+number = 2
+
+
+Console:
+
+Child render, number = 2
+
+
+UI updates.
+
+🔑 VERY IMPORTANT SUMMARY (please read)
+Initial Provider
+
+Value does NOT change
+
+Because state did not change
+
+Later Provider change
+
+Some event happens (click, API, timer)
+
+setState is called inside Provider
+
+Provider re-renders
+
+Provider gives NEW value
+
+Children re-render
+
+One sentence that answers your question EXACTLY
+
+A Provider changes later only when its internal state changes, causing it to re-render with a new value.
+
+Final check (please answer)
+
+Do you now understand this timeline?
+
+Initial render → no change
+↓
+User / API / event
+↓
+setState inside Provider
+↓
+Provider re-render
+↓
+Provider value changes
+↓
+Children re-render
+
+
+Reply with YES or NO.
+If NO, I’ll show the same thing using a timer instead of a button (even clearer).
+Language
+
+App settings

@@ -1,0 +1,120 @@
+That error message —
+
+curl error 28: Failed to connect to repo.packagist.org port 443 after 5200 ms: Connection timed out —
+means your computer (or your PHP/Composer process) cannot reach Packagist.org over HTTPS.
+
+Let’s go through common causes and solutions step by step 👇
+
+🧩 1. Check Your Internet / DNS
+
+Try to confirm if your terminal can reach Packagist:
+
+ping repo.packagist.org
+
+
+or
+
+curl -I https://repo.packagist.org
+
+
+✅ If it works → move to step 2.
+❌ If it fails → your DNS or internet is blocking HTTPS connections to Packagist.
+
+Fix suggestions:
+
+sudo systemd-resolve --flush-caches
+sudo service network-manager restart
+
+
+or temporarily change DNS to Google or Cloudflare:
+
+sudo nano /etc/resolv.conf
+
+
+Add:
+
+nameserver 8.8.8.8
+nameserver 1.1.1.1
+
+
+Then try again:
+
+composer update
+
+⚙️ 2. Use an Alternative Mirror (if Packagist is blocked or slow)
+
+If your region or network is slow to connect to repo.packagist.org, try using a mirror like packagist.jp or laravel-china:
+
+composer config -g repos.packagist composer https://packagist.jp
+
+
+Or:
+
+composer config -g repos.packagist composer https://packagist.org
+
+
+(to restore the default later)
+
+🔒 3. Check PHP OpenSSL & cURL
+
+Make sure PHP has OpenSSL and cURL enabled:
+
+php -m | grep -E 'curl|openssl'
+
+
+If not, enable them in your php.ini (usually in /etc/php/8.x/cli/php.ini):
+
+extension=curl
+extension=openssl
+
+
+Then restart PHP-FPM or just try again:
+
+composer update
+
+🕒 4. Increase Composer Timeout
+
+If your connection is just slow, you can increase the default timeout (60s) to something higher:
+
+composer config -g process-timeout 2000
+
+
+Then run again:
+
+composer update -vvv
+
+
+(-vvv gives detailed debug output)
+
+🧰 5. Clear Composer Cache
+
+Sometimes stale or corrupted cache causes issues:
+
+composer clear-cache
+
+
+Then retry:
+
+composer update
+
+🔁 6. Temporary Workaround: Use --prefer-dist or --no-plugins
+
+You can reduce network usage by forcing dist packages:
+
+composer update --prefer-dist
+
+
+Or skip plugins to isolate the issue:
+
+composer update --no-plugins
+
+✅ 7. If Nothing Works
+
+You can test if the issue is network-level (firewall, proxy, or VPN):
+
+curl https://google.com
+curl https://repo.packagist.org
+
+
+If the first works and the second doesn’t — your ISP or firewall might block the domain.
+Try switching to a different network (e.g., mobile hotspot) and retry.

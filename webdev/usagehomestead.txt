@@ -1,0 +1,60 @@
+For Daily 
+-cd Homestead
+-vagrant up
+-cd code
+-go to project directory
+For New Project 
+-cd Homestead
+-vagrant up
+-cd code
+-git clone (git ssh link)
+-cd project directory
+-composer install
+-cp .env.example .env
+-exit
+Homestead မှ အပြင်ထွက်ပြီးနောက်
+-  cd code
+- cd project directory
+- code .
+- edit env file (host- homestead ip, username- postgres, password- postgres’ password)
+-Open Homestead.yaml file and add new site name and project directory
+- Run ‘sudo nano /etc/hosts’
+-Add new site name (site name must equal to site name of Homestead.yaml file)
+-cd Homestead
+-vagrant reload --provision
+
+
+
+-------------------------------------------------------------------------------------------------------------
+vagrand command can run inside Homestead/ folder
+php command can only run inside vagrant@ vm
+~code/ folder and vagrant@homestead:~$ cd code are synced
+
+
+
+Understand two postgresql 
+    Hostmahine postgresql
+    Virtualmchine machine(vagrant) postgresql ^v15
+
+
+How to Fix PostgreSQL inside Homestead
+🧩 The Core Issue
+
+    You are running two separate environments:
+
+    Environment	Role	PostgreSQL status
+    Host machine (Ubuntu)	Your local OS	✅ PostgreSQL running
+    Guest machine (Homestead VM)	The virtualized Laravel development server	❌ PostgreSQL inactive (dead)
+
+    When you do vagrant up, Homestead boots up a new Ubuntu environment inside VirtualBox.
+    That environment has its own PostgreSQL service, separate from the host.
+
+    So, even if PostgreSQL runs on your host system, that doesn’t automatically start or affect PostgreSQL inside the Homestead VM.
+
+
+✅ Summary
+    Action	                Command
+    SSH into VM	            vagrant ssh
+    Check PostgreSQL	    sudo systemctl status postgresql
+    Start service	        sudo systemctl start postgresql
+    Enable on boot	        sudo systemctl enable postgresql

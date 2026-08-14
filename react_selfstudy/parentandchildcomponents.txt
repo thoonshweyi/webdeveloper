@@ -1,0 +1,114 @@
+Example: Parent and Child Wrapped Components
+function App() {
+  console.log("App render");
+  return (
+    <Parent>
+      <Child />
+    </Parent>
+  );
+}
+
+function Parent({ children }) {
+  console.log("Parent render");
+  return (
+    <div>
+      <h2>Parent Component</h2>
+      {children}
+    </div>
+  );
+}
+
+function Child() {
+  console.log("Child render");
+  return <h3>Child Component</h3>;
+}
+
+What happens when React renders this?
+Step 1: App renders
+
+React calls App()
+
+Logs: "App render"
+
+Returns <Parent> with <Child> inside
+
+Step 2: Parent renders
+
+React calls Parent({ children: <Child /> })
+
+Logs: "Parent render"
+
+Returns <div> … {children} </div>
+
+Step 3: Child renders
+
+React sees {children} → calls Child()
+
+Logs: "Child render"
+
+Returns <h3>Child Component</h3>
+
+✅ Console Output (Render Order)
+App render
+Parent render
+Child render
+
+Key Points
+
+Parent renders first → React computes its JSX
+
+Children render after → React calls them in the order they appear
+
+This is true even if children are wrapped inside a div or multiple layers
+
+Step 4: Nested Wrapping Example
+function App() {
+  return (
+    <GrandParent>
+      <Parent>
+        <Child />
+      </Parent>
+    </GrandParent>
+  );
+}
+
+function GrandParent({ children }) {
+  console.log("GrandParent render");
+  return <div>{children}</div>;
+}
+
+Render order console:
+GrandParent render
+Parent render
+Child render
+
+
+✅ Always top to bottom, outermost → innermost
+
+Step 5: State Updates Example
+function Parent({ children }) {
+  const [count, setCount] = React.useState(0);
+  console.log("Parent render", count);
+
+  return (
+    <div>
+      <button onClick={() => setCount(count + 1)}>Increment</button>
+      {children}
+    </div>
+  );
+}
+
+
+Click the button → Parent re-renders → Child also re-renders
+
+React always re-renders children after parent
+
+🔑 Takeaway with Wrapped Components
+
+React renders outermost component first
+
+Then renders inside children (top → bottom, left → right)
+
+Any parent re-render → all children re-render automatically
+
+Any child state change → only that child and its own children re-render

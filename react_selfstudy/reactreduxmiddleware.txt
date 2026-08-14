@@ -1,0 +1,197 @@
+One-line idea
+
+Redux middleware is just a function that runs BEFORE the action reaches the reducer.
+
+That’s it.
+
+Think like this 🧠
+
+When you do:
+
+dispatch(action)
+
+
+Redux does not send the action directly to the reducer.
+
+Instead, it goes like this:
+
+dispatch(action)
+   ↓
+middleware
+   ↓
+reducer
+
+
+Middleware is just a stop in the middle.
+
+Why middleware exists (very simple)
+
+Reducers:
+
+❌ cannot call API
+
+❌ cannot wait (async)
+
+❌ cannot log
+
+Middleware:
+
+✅ API calls
+
+✅ async
+
+✅ logging
+
+✅ checking conditions
+
+The scary line (made friendly)
+store => next => action =>
+
+
+Ignore the arrows for a second.
+
+It really means:
+
+middleware(store, next, action)
+
+
+Redux just passes them one by one.
+
+What each word means (plain English)
+store
+
+Gives you:
+
+getState()
+
+dispatch()
+
+👉 “What is the current state?”
+
+action
+
+This is what you dispatched:
+
+dispatch({ type: "ADD" });
+
+
+👉 Middleware sees the action first
+
+next
+
+A function that says:
+
+“Ok, send this action forward”
+
+next(action)
+
+
+If you don’t call next, reducer will never run.
+
+Smallest middleware example
+const simpleMiddleware = store => next => action => {
+  console.log("Action:", action);
+  next(action);
+};
+
+
+What happens?
+
+You dispatch action
+
+Middleware logs it
+
+Action continues to reducer
+
+What if you DON’T call next(action)?
+const blockMiddleware = store => next => action => {
+  if (action.type === "DELETE") return;
+  next(action);
+};
+
+
+👉 Action is stopped
+👉 Reducer never sees it
+----------------------------------------------------------------------------------------------
+Step 1: It is NOT one function
+
+It is 3 functions, inside each other.
+
+store => next => action => {
+  // code
+}
+
+
+means:
+
+function first(store) {
+  return function second(next) {
+    return function third(action) {
+      // code
+    };
+  };
+}
+
+
+That’s it. Nothing more.
+
+Step 2: Why 3 functions?
+
+Because Redux gives values in 3 moments:
+
+Moment	Redux gives
+Store created	store
+Middleware setup	next
+Every dispatch	action
+Step 3: Think of it like this (VERY IMPORTANT)
+Imagine a factory
+1️⃣ Factory setup time (once)
+middleware(store)
+
+
+Now middleware knows the store forever.
+
+2️⃣ Assembly line setup (once)
+middleware(store)(next)
+
+
+Now middleware knows where to send the action next.
+
+3️⃣ Product arrives (many times)
+middleware(store)(next)(action)
+
+
+Now middleware handles each action.
+
+Step 4: Visual flow
+store creation
+   ↓
+store => (saved)
+
+middleware chain setup
+   ↓
+next => (saved)
+
+dispatch happens
+   ↓
+action => (used)
+
+Step 5: Very concrete example (no Redux)
+function add(a) {
+  return function(b) {
+    return function(c) {
+      return a + b + c;
+    };
+  };
+}
+
+add(1)(2)(3); // 6
+
+
+Same pattern. Just numbers instead of Redux.
+
+Step 6: Back to Redux (simple words)
+const middleware = store => next => action => {
+  console.log(action);
+  next(action);
+};

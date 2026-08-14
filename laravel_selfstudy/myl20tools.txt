@@ -1,0 +1,6 @@
+✅ Useful VS Code extensions & tools
+
+    PHP Namespace Resolver
+    For PHP: lets you right-click on a class name and choose “Import Class” to automatically add the use statement at the top. 
+    Neutron Dev
+    Works for PHP. If your project has unusual namespace layout, might need tweaking

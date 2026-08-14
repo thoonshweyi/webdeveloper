@@ -1,0 +1,70 @@
+✅ Why this works (short explanation)
+
+An .xlsx file is just a ZIP file that contains many folders and XML files.
+Excel hides this from normal users.
+
+Inside that ZIP file, all embedded images are stored in one place.
+
+🪜 Step-by-Step: How to get images from Excel (xl/media)
+🔹 Step 1: Make a copy of the Excel file
+
+👉 Important: Do NOT work on the original file
+
+Example:
+
+product_list.xlsx
+
+
+Copy it and rename:
+
+product_list_copy.xlsx
+
+🔹 Step 2: Rename .xlsx → .zip
+
+Right-click the copied file
+
+Rename:
+
+product_list_copy.xlsx
+↓
+product_list_copy.zip
+
+
+If Windows asks:
+
+“Are you sure you want to change the file extension?”
+
+👉 Click Yes
+
+🔹 Step 3: Extract the ZIP file
+
+Right-click product_list_copy.zip
+
+Click Extract All
+
+Click Extract
+
+Now you will see a folder like:
+
+product_list_copy/
+
+🔹 Step 4: Navigate to images folder
+
+Open folders in this exact order:
+
+product_list_copy
+ └── xl
+     └── media
+
+
+📂 Path
+
+product_list_copy/xl/media/
+
+🎉 Step 5: Get your images
+
+Inside media folder you will see:
+
+image1.png
+image2.jpeg
+image3.jpg

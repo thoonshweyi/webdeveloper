@@ -1,0 +1,93 @@
+=> Larave Excel
+
+    => Single Sheet Imported
+
+        Step 1: Install Laravel Excel Package
+            composer require maatwebsite/excel
+
+
+            💡 Optional (use mirror if Packagist blocked)
+
+            If your connection to Packagist is unreliable, use Composer mirror (like Laravel China):
+
+            composer config -g repos.packagist composer https://mirrors.cloud.tencent.com/composer/
+
+        Step 2: Create an Import Class
+
+            Run the following command to create an import class:
+
+            php artisan make:import PositionImport --model=Position
+
+
+            =In app/Imports/PositionImport.php.
+
+                namespace App\Imports;
+
+                use App\Models\Position;
+                use Maatwebsite\Excel\Concerns\ToModel;
+                use Maatwebsite\Excel\Concerns\WithHeadingRow;
+
+                class PositionImport implements ToModel, WithHeadingRow
+                {
+                    public function model(array $row)
+                    {
+                        return new Position([
+                            'name'      => $row['name'],   // Column 'name' from Excel
+                            'slug'      => $row['slug'],   // Column 'slug' from Excel
+                            'status_id' => $row['status_id'], // Column 'status_id' from Excel
+                            'user_id'   => $row['user_id'], // Column 'user_id' from Excel
+                        ]);
+                    }
+                }
+
+        Step 3: Create a Controller for Importing
+            php artisan make:controller PositionsController
+
+            =In PositionsController
+                namespace App\Http\Controllers;
+
+                use Illuminate\Http\Request;
+                use Maatwebsite\Excel\Facades\Excel;
+                use App\Imports\PositionImport;
+
+                class PositionsController extends Controller
+                {
+    
+
+                    public function import(Request $request)
+                    {
+                        $request->validate([
+                            'file' => 'required|mimes:xlsx,csv,xls|max:2048'
+                        ]);
+
+                        Excel::import(new PositionImport, $request->file('file'));
+
+                        return redirect()->back()->with('success', 'Positions Imported Successfully!');
+                    }
+                }
+
+        Step 4: Create an Import Form
+
+            =In view
+            resources/views/positions/import.blade.php:
+
+            <form action="{{ route('positions.import') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <input type="file" name="file" required>
+                <button type="submit">Import</button>
+            </form>
+
+        Step 5: Define Routes
+
+            =>In routes/web.php,
+
+                use App\Http\Controllers\PositionsController;
+
+                Route::post('/positions/import', [PositionsController::class, 'import'])->name('positions.import');
+
+
+
+        =>Accessible Cell Value
+            
+        =>Duplet Logic
+        

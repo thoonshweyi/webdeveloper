@@ -1,0 +1,5 @@
+
+=>Dock
+Behavior setup (for Ubuntu Dock or Dash-to-Dock)
+
+    gsettings set org.gnome.shell.extensions.dash-to-dock click-action 'minimize-or-previews'

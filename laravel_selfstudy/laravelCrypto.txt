@@ -1,0 +1,101 @@
+🔐 What is Crypt (Cryptography) in Laravel?
+
+Cryptography = converting data into a secret format so others cannot read it.
+
+In Laravel, Crypt::encrypt() and Crypt::decrypt() use encryption to protect data.
+
+✅ What your code is doing
+$tokenPayload = [
+    'user_id' => $user->id,
+    'email' => $user->email,
+    'timestamp' => now(),
+    'form_id' => $form_id,
+];
+
+$encryptedToken = Crypt::encrypt($tokenPayload);
+
+👉 This converts your PHP array into a secret encrypted string.
+
+Example (not real):
+
+eyJpdiI6IjJrV2t3YkR...
+
+No one can read it unless they have your APP_KEY.
+
+🔑 How Laravel Crypt Works
+
+Laravel uses APP_KEY from .env:
+
+APP_KEY=base64:AbCDeFg123...
+
+This key is used to:
+
+Encrypt data 🔒
+
+Decrypt data 🔓
+
+🔄 Encryption vs Hashing (Important)
+Type	Can you reverse it?	Use case
+Encrypt	✅ Yes (decrypt)	Tokens, secure data
+Hash	❌ No	Passwords (bcrypt, sha256)
+
+👉 Crypt::encrypt() is reversible
+👉 Hash::make() is not reversible
+
+🌐 Why encrypt token in auto-login?
+
+You are sending token in URL:
+
+/auto-login?token=xxxx
+
+Without encryption, attacker could see:
+
+user_id=5
+email=test@mail.com
+
+With encryption, they see only garbage:
+
+eyJpdiI6Ik5pRm...
+
+✅ Prevents hacking
+✅ Prevents tampering
+
+🔓 How to read token on frontend/backend
+
+On Laravel backend:
+
+$data = Crypt::decrypt($encryptedToken);
+
+Now $data becomes:
+
+[
+ 'user_id' => 5,
+ 'email' => 'test@mail.com',
+ 'timestamp' => '2026-02-12',
+ 'form_id' => 15
+]
+⚠️ Security Tips (Very Important)
+✅ 1. Never share APP_KEY
+
+If leaked → attacker can decrypt all tokens.
+
+✅ 2. Add Expiration Check
+
+Example:
+
+if (now()->diffInMinutes($data['timestamp']) > 2) {
+    abort(403, "Token expired");
+}
+✅ 3. Do NOT put sensitive secrets in URL
+
+URL logs in browser history and server logs.
+
+Better: use session or POST.
+
+🧠 Simple Explanation
+
+Think like:
+
+Encrypt = lock data with a secret key
+
+Decrypt = unlock with the same key

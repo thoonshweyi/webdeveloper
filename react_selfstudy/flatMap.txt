@@ -1,0 +1,73 @@
+// 🧠 What is flatMap?
+
+// 👉 flatMap = map + flatten
+
+// map = change each item
+
+// flatten = remove nested arrays
+
+// 🧩 Simple Example
+// Normal Array
+// const numbers = [1, 2, 3];
+// ✅ map (only changes items)
+// const result = numbers.map(n => [n, n * 2]);
+
+// Result:
+
+// [[1,2], [2,4], [3,6]]
+
+// 👉 Notice: array inside array (nested)
+
+// ✅ flatMap (map + flatten)
+// const result = numbers.flatMap(n => [n, n * 2]);
+
+// Result:
+
+// [1, 2, 2, 4, 3, 6]
+
+// 👉 flatMap removes nested arrays automatically.
+
+// 🧩 Your Case Example
+// Your errors:
+// const productErrors = {
+//   "1001": { price1: "Required" },
+//   "1002": { price2: "Too high" }
+// };
+// Step 1: Object.values(productErrors)
+// [
+//   { price1: "Required" },
+//   { price2: "Too high" }
+// ]
+// Step 2: flatMap
+// Object.values(productErrors).flatMap(fields => Object.values(fields));
+// Each fields is:
+// { price1: "Required" }
+
+// Object.values(fields) → ["Required"]
+
+// flatMap combines:
+// ["Required", "Too high"]
+// 🧠 Without flatMap (Easy to Understand)
+
+// If flatMap is confusing, just use this 👇
+
+// const allMessages = [];
+
+// Object.values(productErrors).forEach(fields => {
+//   Object.values(fields).forEach(msg => {
+//     allMessages.push(msg);
+//   });
+// });
+
+
+
+
+
+
+const allMessages = [];
+
+for (const productCode in productErrors) {
+  for (const field in productErrors[productCode]) {
+    allMessages.push(productErrors[productCode][field]);
+  }
+}
