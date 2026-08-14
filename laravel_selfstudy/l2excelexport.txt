@@ -1,0 +1,310 @@
+=>How to export an excel sheet with laravel exce.
+
+    To export an Excel sheet in Laravel, you can use the popular package Laravel Excel, built on Maatwebsite Excel.
+
+    ✅ Step-by-step guide to export an Excel file in Laravel:
+    Step 1: Install Laravel Excel
+
+    Run this in your Laravel project:
+
+    composer require maatwebsite/excel
+    Step 2: Create an Export Class
+    php artisan make:export UsersExport --model=User
+
+    This will create UsersExport.php in App\Exports.
+
+    Step 3: Define the Export Logic
+
+    Edit App\Exports\UsersExport.php:
+
+    namespace App\Exports;
+
+
+    use App\Models\User;
+    use Maatwebsite\Excel\Concerns\FromCollection;
+
+
+    class UsersExport implements FromCollection
+    {
+        public function collection()
+        {
+            return User::all(); // Or add ->select('id', 'name', ...) to limit columns
+        }
+    }
+
+    Other interfaces you can use:
+
+    FromArray – if you want to pass array manually
+    WithHeadings – for column headers
+    WithMapping – to format data
+    FromView – if you want to use a Blade view
+    Step 4: Create the Export Route and Controller Method
+
+    In web.php:
+
+    use App\Http\Controllers\UserExportController;
+
+
+    Route::get('/export-users', [UserExportController::class, 'export']);
+
+    Create controller if you don't have:
+
+    php artisan make:controller UserExportController
+
+    In UserExportController.php:
+
+    namespace App\Http\Controllers;
+
+
+    use App\Exports\UsersExport;
+    use Maatwebsite\Excel\Facades\Excel;
+
+
+    class UserExportController extends Controller
+    {
+        public function export()
+        {
+            return Excel::download(new UsersExport, 'users.xlsx');
+        }
+    }
+    ✅ Optional: Add Headings
+
+    In your UsersExport.php, implement WithHeadings:
+
+    use Maatwebsite\Excel\Concerns\WithHeadings;
+
+
+    class UsersExport implements FromCollection, WithHeadings
+    {
+        public function collection()
+        {
+            return User::select('id', 'name', 'email')->get();
+        }
+
+
+        public function headings(): array
+        {
+            return ['ID', 'Name', 'Email'];
+        }
+    }
+    ✅ Optional: Export with Blade View (for complex layout)
+
+    Use FromView instead of FromCollection:
+
+    use Illuminate\Contracts\View\View;
+    use Maatwebsite\Excel\Concerns\FromView;
+
+
+    class UsersExport implements FromView
+    {
+        public function view(): View
+        {
+            return view('exports.users', [
+                'users' => User::all()
+            ]);
+        }
+    }
+
+    And create resources/views/exports/users.blade.php as a normal HTML table.
+
+    ✅ Output as CSV
+    return Excel::download(new UsersExport, 'users.csv', \Maatwebsite\Excel\Excel::CSV);
+
+    Let me know if you want:
+
+    Auto column width
+    Multiple sheets in one Excel file
+    Export filtered data
+    Export to storage instead of download
+
+    I can provide examples for those too.
+
+
+=>How to useWithMapping
+
+    WithMapping က Laravel Excel မှာ Database model တစ်ခုချင်းစီရဲ့ data ကို Excel row အဖြစ် export မလုပ်ခင် format ပြောင်းချင်တဲ့အခါ သုံးတာပါ။
+
+    ဥပမာ User model မှာ name, email, created_at ရှိတယ်ဆိုပါစို့။
+
+    1. WithMapping သုံးတဲ့ Export
+    namespace App\Exports;
+
+
+    use App\Models\User;
+    use Maatwebsite\Excel\Concerns\FromCollection;
+    use Maatwebsite\Excel\Concerns\WithHeadings;
+    use Maatwebsite\Excel\Concerns\WithMapping;
+
+
+    class UsersExport implements FromCollection, WithHeadings, WithMapping
+    {
+        public function collection()
+        {
+            return User::all();
+        }
+
+
+        public function headings(): array
+        {
+            return [
+                'ID',
+                'Name',
+                'Email',
+                'Created Date',
+            ];
+        }
+
+
+        public function map($user): array
+        {
+            return [
+                $user->id,
+                $user->name,
+                $user->email,
+                $user->created_at->format('Y-m-d'),
+            ];
+        }
+    }
+
+    ဒါဆို Excel ထဲမှာ—
+
+    ID	Name	Email	Created Date
+    1	John	john@gmail.com	2026-08-14
+    2	David	david@gmail.com	2026-08-13
+
+    လိုမျိုး ရလာပါမယ်။
+
+    2. WithMapping ရဲ့ အဓိကအလုပ်
+
+    Database က data ကို တိုက်ရိုက် export မလုပ်ဘဲ—
+
+    public function map($user): array
+    {
+        return [
+            $user->id,
+            $user->name,
+            $user->email,
+        ];
+    }
+
+    ဒီလို ကိုယ်လိုချင်တဲ့ column order နဲ့ ပြန်စီနိုင်ပါတယ်။
+
+    ဥပမာ Database မှာ—
+
+    id
+    name
+    email
+    phone
+    address
+    created_at
+
+    ရှိပေမယ့် Excel မှာ—
+
+    Name
+    Phone
+    Email
+    Address
+
+    ပဲလိုရင်—
+
+    public function map($user): array
+    {
+        return [
+            $user->name,
+            $user->phone,
+            $user->email,
+            $user->address,
+        ];
+    }
+    3. Relationship data ကိုလည်း သုံးနိုင်တယ်
+
+    ဥပမာ User မှာ—
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    ရှိရင်—
+
+    public function collection()
+    {
+        return User::with('department')->get();
+    }
+
+
+    public function map($user): array
+    {
+        return [
+            $user->id,
+            $user->name,
+            $user->department?->name,
+        ];
+    }
+
+    Excel:
+
+    ID	Name	Department
+    1	John	IT
+    2	David	HR
+    4. Condition နဲ့ value ပြောင်းနိုင်တယ်
+
+    ဥပမာ status က DB မှာ—
+
+    1 = Active
+    0 = Inactive
+
+    ဆိုရင် Excel မှာ Active / Inactive လို့ ပြချင်ရင်—
+
+    public function map($user): array
+    {
+        return [
+            $user->id,
+            $user->name,
+            $user->status == 1 ? 'Active' : 'Inactive',
+        ];
+    }
+    5. WithHeadings + WithMapping က အများဆုံးသုံးတဲ့ combination
+    class UsersExport implements
+        FromCollection,
+        WithHeadings,
+        WithMapping
+    {
+        public function collection()
+        {
+            return User::with('department')->get();
+        }
+
+
+        public function headings(): array
+        {
+            return [
+                'ID',
+                'Name',
+                'Department',
+                'Status',
+            ];
+        }
+
+
+        public function map($user): array
+        {
+            return [
+                $user->id,
+                $user->name,
+                $user->department?->name,
+                $user->status ? 'Active' : 'Inactive',
+            ];
+        }
+    }
+    အရေးကြီးတာတစ်ခု
+
+    WithMapping က heading ကို သတ်မှတ်တာမဟုတ်ပါဘူး။
+
+    WithHeadings → Excel ရဲ့ header row
+    WithMapping → Database object တစ်ခုချင်းစီကို Excel row အဖြစ် ဘယ်လိုပြောင်းမလဲ
+    FromCollection → ဘယ် data တွေကို export မလဲ
+
+    ဆိုပြီး ခွဲမှတ်ထားရင် အလွယ်တကူနားလည်ပါလိမ့်မယ်။
+
+    သင့်ရဲ့ actual Laravel query/model ကိုပေးရင် WithMapping နဲ့ သင့် Excel format အတိုင်း တစ်ခါတည်းရေးပေးနိုင်တယ်။
