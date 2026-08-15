@@ -308,3 +308,1367 @@
     ဆိုပြီး ခွဲမှတ်ထားရင် အလွယ်တကူနားလည်ပါလိမ့်မယ်။
 
     သင့်ရဲ့ actual Laravel query/model ကိုပေးရင် WithMapping နဲ့ သင့် Excel format အတိုင်း တစ်ခါတည်းရေးပေးနိုင်တယ်။
+
+=>ShouldAutoSize
+    You're already on the right track — you're using ShouldAutoSize, which automatically adjusts column widths in Laravel Excel (Maatwebsite package) to fit the content.
+
+    However, auto-sizing only works for column widths that are in the default sheet direction (usually left-to-right), and you need to ensure a few things for it to work properly.
+
+    ✅ Steps to ensure auto column width works:
+    Implement ShouldAutoSize (✅ already done):
+    use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+
+
+    class EmployeesExport implements FromView, ShouldAutoSize
+    Use a clean HTML table in your Blade view employees/export.blade.php:
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Position</th>
+                <th>Email</th>
+                <!-- Add more columns -->
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($employees as $employee)
+                <tr>
+                    <td>{{ $employee->name }}</td>
+                    <td>{{ $employee->position }}</td>
+                    <td>{{ $employee->email }}</td>
+                    <!-- Add more fields -->
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+    Make sure there’s no CSS or style overriding widths. Laravel Excel parses the raw table — not styled HTML. So don’t apply fixed widths.
+    Note: Auto-size doesn’t always work on very large datasets or with non-ASCII content (like Burmese), because PhpSpreadsheet estimates widths based on character count.
+    🔍 Still not working?
+
+    You can try manually setting column widths using WithColumnWidths (instead of auto):
+
+    use Maatwebsite\Excel\Concerns\WithColumnWidths;
+
+
+    class EmployeesExport implements FromView, ShouldAutoSize, WithColumnWidths
+    {
+        public function columnWidths(): array
+        {
+            return [
+                'A' => 20, // column A width
+                'B' => 30, // column B width
+                // Add more if needed
+            ];
+        }
+    }
+
+    Let me know if your data includes non-Latin scripts or you need dynamic control of widths. I can help with that too.
+
+    ShouldAutoSize is not work.
+
+    If ShouldAutoSize is not working, here are the most common causes and fixes in Laravel Excel (Maatwebsite):
+
+    ✅ 1. Use FromCollection instead of FromView (optional test)
+
+    ShouldAutoSize works more reliably with FromCollection than with FromView. If possible, test it like this:
+
+    use Maatwebsite\Excel\Concerns\FromCollection;
+    use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+
+
+    class TestExport implements FromCollection, ShouldAutoSize
+    {
+        public function collection()
+        {
+            return collect([
+                ['Name', 'Email'],
+                ['Aung Aung', 'aung@example.com'],
+                ['Mg Mg', 'mg@example.com'],
+            ]);
+        }
+    }
+
+    ✅ Run this to test whether auto-sizing works in your setup.
+
+=>Form collection
+    How to use from collection.
+
+    To use FromCollection in Laravel Excel for your Employees Export, follow these steps. This method enables true auto-width, since FromCollection works directly with spreadsheet cells instead of rendering an HTML view.
+
+    ✅ Step-by-Step: Use FromCollection
+    🧩 1. Update Your Export Class
+
+    Here’s a full example using FromCollection, WithHeadings, and ShouldAutoSize:
+
+    <?php
+
+
+    namespace App\Exports;
+
+
+    use Illuminate\Support\Collection;
+    use Maatwebsite\Excel\Concerns\FromCollection;
+    use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+    use Maatwebsite\Excel\Concerns\WithTitle;
+    use Maatwebsite\Excel\Concerns\WithHeadings;
+
+
+    class EmployeesExport implements FromCollection, WithTitle, ShouldAutoSize, WithHeadings
+    {
+        private $employees;
+
+
+        public function __construct($employees)
+        {
+            $this->employees = $employees;
+        }
+
+
+        public function title(): string
+        {
+            return 'Employees List';
+        }
+
+
+        public function headings(): array
+        {
+            return [
+                'No',
+                'Name',
+                'Employee Code',
+                'Branch',
+                'Position',
+                'Level',
+                'Criteria 1',
+                'Criteria 2',
+                'Criteria 3',
+                'Criteria 4',
+                'Criteria 5',
+            ];
+        }
+
+
+        public function collection(): Collection
+        {
+            return collect($this->employees)->map(function ($employee, $index) {
+                $criteria = $employee->emppuser?->getAssFormCats() ?? [];
+
+
+                // Get up to 5 criteria names, pad with empty strings if less
+                $criteriaNames = collect($criteria)
+                    ->pluck('name')
+                    ->take(5)
+                    ->pad(5, '');
+
+
+                return [
+                    $index + 1,
+                    $employee['employee_name'],
+                    $employee['employee_code'],
+                    $employee['branch']['branch_name'],
+                    $employee->position->name,
+                    $employee->positionlevel->name,
+                    $criteriaNames[0],
+                    $criteriaNames[1],
+                    $criteriaNames[2],
+                    $criteriaNames[3],
+                    $criteriaNames[4],
+                ];
+            });
+        }
+    }
+    🧠 Explanation
+    ✅ FromCollection: Returns data as a collection (like a table).
+    ✅ WithHeadings: Adds a header row at the top.
+    ✅ ShouldAutoSize: Makes all columns auto-width correctly.
+    ✅ WithTitle: Adds the sheet name if exporting multiple sheets.
+    ✅ 2. Use the Export Class
+
+    In your controller or wherever you call the export:
+
+    use App\Exports\EmployeesExport;
+    use Maatwebsite\Excel\Facades\Excel;
+
+
+    public function export()
+    {
+        $employees = Employee::with(['branch', 'position', 'positionlevel', 'emppuser'])->get();
+
+
+        return Excel::download(new EmployeesExport($employees), 'employees.xlsx');
+    }
+    ✅ Summary of Benefits
+    Feature	FromView (Blade)	FromCollection
+    Blade formatting	✅ Yes	❌ No
+    Auto column width	❌ Unreliable	✅ Accurate
+    Fast export	❌ Slower	✅ Faster
+    Good for styling	✅ Yes	⚠️ Basic only
+
+=>Register Event
+    <?php
+
+    namespace App\Exports;
+
+    use Maatwebsite\Excel\Events\AfterSheet;
+    use Maatwebsite\Excel\Concerns\WithDrawings;
+    use Maatwebsite\Excel\Concerns\WithHeadings;
+    use Maatwebsite\Excel\Concerns\FromCollection;
+    use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+    use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+
+    class CardNumbersExport implements FromCollection, WithHeadings, WithDrawings, ShouldAutoSize
+    {
+        private $cardNumbers; // Card numbers collection
+        private $qrViews;     // QR images as base64 strings
+
+        public function __construct($cardNumbers, $qrViews)
+        {
+            $this->cardNumbers = $cardNumbers;
+            $this->qrViews = $qrViews;
+        }
+
+        // Data rows
+        public function collection()
+        {
+            $data = collect();
+
+            foreach ($this->cardNumbers as $index => $cardNumber) {
+                $data->push([
+                    'No' => $index + 1,
+                    'Card Number' => $cardNumber->card_number,
+                    'QR Code' => '', // Placeholder for QR code image
+                ]);
+            }
+
+            return $data;
+        }
+
+        // Headings for the Excel sheet
+        public function headings(): array
+        {
+            return ['No', 'Card Number', 'QR Code'];
+        }
+
+        // Add QR code images
+        public function drawings()
+        {
+            $drawings = [];
+
+            foreach ($this->qrViews as $index => $qrBase64) {
+                $drawing = new Drawing();
+                $drawing->setName('QR Code');
+                $drawing->setDescription('QR Code');
+                $drawing->setPath($this->saveBase64Image($qrBase64, $index)); // Save base64 image to a temporary file
+                $drawing->setHeight(100);
+                $drawing->setCoordinates('C' . ($index + 2)); // Column C, starting from row 2 (after headings)
+                $drawings[] = $drawing;
+            }
+
+            return $drawings;
+        }
+
+        // Save the base64 image to a temporary file
+        private function saveBase64Image($base64, $index)
+        {
+            $directory = storage_path('app'); // Ensure this is correct
+            if (!is_dir($directory)) {
+                mkdir($directory, 0755, true); // Create the directory if it doesn't exist
+            }
+
+            $filePath = $directory . "/temp_qr_{$index}.png";
+            file_put_contents($filePath, base64_decode($base64));
+            return $filePath;
+        }
+
+
+        public function registerEvents(): array
+        {
+            return [
+                AfterSheet::class => function (AfterSheet $event) {
+                    // Set row height for all rows
+                    foreach (range(2, count($this->data) + 1) as $row) {
+                        $event->sheet->getDelegate()->getRowDimension($row)->setHeight(120);
+                    }
+
+                    // Optional: Set column widths
+                    $event->sheet->getDelegate()->getColumnDimension('A')->setWidth(5);
+                    $event->sheet->getDelegate()->getColumnDimension('B')->setWidth(20);
+                    $event->sheet->getDelegate()->getColumnDimension('C')->setWidth(100);
+                },
+            ];
+        }
+    }
+    Row height is not expand.
+
+
+    It looks like the issue with the row height not expanding might be due to how the AfterSheet event is set up. Specifically, the $this->data variable you're referencing in the loop does not exist in the class, which could lead to the row height not being set correctly.
+
+    To fix this, you can adjust the AfterSheet event to use the correct number of rows based on the cardNumbers collection instead of $this->data. Here's the corrected version of the registerEvents method:
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                // Set row height for all rows
+                foreach (range(2, count($this->cardNumbers) + 1) as $row) {
+                    $event->sheet->getDelegate()->getRowDimension($row)->setHeight(120);
+                }
+
+
+                // Optional: Set column widths
+                $event->sheet->getDelegate()->getColumnDimension('A')->setWidth(5);
+                $event->sheet->getDelegate()->getColumnDimension('B')->setWidth(20);
+                $event->sheet->getDelegate()->getColumnDimension('C')->setWidth(100);
+            },
+        ];
+    }
+
+    In this version, the row height is set based on the count of $this->cardNumbers (the data collection) instead of $this->data, which wasn't defined in your class. This should fix the issue with the row height not expanding.
+
+
+        public function registerEvents(): array
+        {
+            return [
+                AfterSheet::class => function (AfterSheet $event) {
+                    // Set row height for all rows
+                    foreach (range(2, count($this->cardNumbers) + 1) as $row) {
+                        $event->sheet->getDelegate()->getRowDimension($row)->setHeight(120);
+                    }
+
+                    // Optional: Set column widths
+                    $event->sheet->getDelegate()->getColumnDimension('A')->setWidth(5);
+                    $event->sheet->getDelegate()->getColumnDimension('B')->setWidth(20);
+                    $event->sheet->getDelegate()->getColumnDimension('C')->setWidth(100);
+                },
+            ];
+        }
+    It not still correct . I want to expand height of all rows and columns
+
+    To ensure that all rows and columns have their height and width expanded properly in your export, you can make the following changes:
+
+    Set the row height for all rows: You need to adjust the row height for all rows, including the header. The range() method should cover the entire row range, from row 1 (the header) to the last row.
+    Set the column width for all columns: Instead of specifying widths for individual columns, you can iterate over all columns and adjust the width.
+
+    Here’s the corrected code:
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                // Set row height for all rows
+                $highestRow = count($this->cardNumbers) + 1; // Number of rows (including the header)
+                for ($row = 1; $row <= $highestRow; $row++) {
+                    $event->sheet->getDelegate()->getRowDimension($row)->setHeight(120); // Adjust height here
+                }
+
+
+                // Set column widths for all columns
+                $event->sheet->getDelegate()->getColumnDimension('A')->setWidth(10); // Column A
+                $event->sheet->getDelegate()->getColumnDimension('B')->setWidth(25); // Column B
+                $event->sheet->getDelegate()->getColumnDimension('C')->setWidth(25); // Column C
+
+
+                // Optionally, auto size all columns (if you want dynamic width based on content)
+                $event->sheet->getDelegate()->getStyle('A:C')->getAlignment()->setWrapText(true);
+            },
+        ];
+    }
+    Key changes:
+    Row Height: We loop through all rows, from 1 to the total number of rows ($highestRow), and set the row height.
+    Column Widths: Set fixed column widths for columns A, B, and C. You can adjust the widths based on your data.
+    Text Wrapping: Optionally, you can enable text wrapping for all columns using setWrapText(true) if you want the text to wrap inside the cell.
+
+    This should ensure that all rows have a consistent height and all columns have their widths properly adjusted. If you still want to dynamically adjust column widths based on content, you can explore other methods like autoSize() for columns.
+
+    Yes, you need to register the AfterSheet event for the row height and column width adjustments to work.
+
+    In the code you've shared, the registerEvents() method is where you define and register events like AfterSheet. This method tells the Excel export package to run certain actions after the sheet has been processed, such as adjusting row heights and column widths.
+
+    Since you're using the Maatwebsite\Excel package, the AfterSheet event is the correct way to make modifications to the Excel sheet after the data is written.
+
+    Here’s a quick recap of how it works:
+
+    The registerEvents() method is called to register the AfterSheet event.
+    Inside the AfterSheet event, you can adjust row heights, column widths, or apply styles to the sheet after the data is processed.
+
+    Without registering the AfterSheet event in the registerEvents() method, the modifications you want (such as row height or column width adjustments) will not be applied to the exported Excel file.
+
+    So, yes, you do need to register the AfterSheet event as shown in your code.
+
+    <?php
+
+    namespace App\Exports;
+
+    use Maatwebsite\Excel\Events\AfterSheet;
+    use Maatwebsite\Excel\Concerns\WithDrawings;
+    use Maatwebsite\Excel\Concerns\WithHeadings;
+    use Maatwebsite\Excel\Concerns\FromCollection;
+    use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+    use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+
+    class CardNumbersExport implements FromCollection, WithHeadings, WithDrawings, ShouldAutoSize
+    {
+        private $cardNumbers; // Card numbers collection
+        private $qrViews;     // QR images as base64 strings
+
+        public function __construct($cardNumbers, $qrViews)
+        {
+            $this->cardNumbers = $cardNumbers;
+            $this->qrViews = $qrViews;
+        }
+
+        // Data rows
+        public function collection()
+        {
+            $data = collect();
+
+            foreach ($this->cardNumbers as $index => $cardNumber) {
+                $data->push([
+                    'No' => $index + 1,
+                    'Card Number' => $cardNumber->card_number,
+                    'QR Code' => '', // Placeholder for QR code image
+                ]);
+            }
+
+            return $data;
+        }
+
+        // Headings for the Excel sheet
+        public function headings(): array
+        {
+            return ['No', 'Card Number', 'QR Code'];
+        }
+
+        // Add QR code images
+        public function drawings()
+        {
+            $drawings = [];
+
+            foreach ($this->qrViews as $index => $qrBase64) {
+                $drawing = new Drawing();
+                $drawing->setName('QR Code');
+                $drawing->setDescription('QR Code');
+                $drawing->setPath($this->saveBase64Image($qrBase64, $index)); // Save base64 image to a temporary file
+                $drawing->setHeight(100);
+                $drawing->setCoordinates('C' . ($index + 2)); // Column C, starting from row 2 (after headings)
+                $drawings[] = $drawing;
+            }
+
+            return $drawings;
+        }
+
+        // Save the base64 image to a temporary file
+        private function saveBase64Image($base64, $index)
+        {
+            $directory = storage_path('app'); // Ensure this is correct
+            if (!is_dir($directory)) {
+                mkdir($directory, 0755, true); // Create the directory if it doesn't exist
+            }
+
+            $filePath = $directory . "/temp_qr_{$index}.png";
+            file_put_contents($filePath, base64_decode($base64));
+            return $filePath;
+        }
+
+
+        public function registerEvents(): array
+        {
+            return [
+                AfterSheet::class => function (AfterSheet $event) {
+                    // Set row height for all rows
+                    foreach (range(2, count($this->cardNumbers) + 1) as $row) {
+                        $event->sheet->getDelegate()->getRowDimension($row)->setHeight(120);
+                    }
+
+                    // Optional: Set column widths
+                    $event->sheet->getDelegate()->getColumnDimension('A')->setWidth(5);
+                    $event->sheet->getDelegate()->getColumnDimension('B')->setWidth(20);
+                    $event->sheet->getDelegate()->getColumnDimension('C')->setWidth(100);
+                },
+            ];
+        }
+    }
+    It still not expand row height.
+
+    The issue you're encountering where the row height isn't expanding is likely due to how you're accessing and modifying the rows and columns in the AfterSheet event.
+
+    The problem could be related to how you're iterating over the rows. Instead of using range(2, count($this->cardNumbers) + 1), try accessing the row dimensions using the getRowDimension method for the entire sheet and apply a fixed height to all rows.
+
+    Here's an updated approach to ensure the row heights are set correctly:
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                // Get the total number of rows (including header)
+                $highestRow = count($this->cardNumbers) + 1; // +1 for the header row
+
+
+                // Set row height for all rows (from row 1 to highest row)
+                for ($row = 1; $row <= $highestRow; $row++) {
+                    $event->sheet->getDelegate()->getRowDimension($row)->setRowHeight(120);
+                }
+
+
+                // Optional: Set column widths
+                $event->sheet->getDelegate()->getColumnDimension('A')->setWidth(5);
+                $event->sheet->getDelegate()->getColumnDimension('B')->setWidth(20);
+                $event->sheet->getDelegate()->getColumnDimension('C')->setWidth(100);
+            },
+        ];
+    }
+    Key changes:
+    Row Height: The method setRowHeight() is used instead of setHeight() to ensure the row height is applied correctly. This should set the height for all rows, from the first to the last.
+    Loop through all rows: The loop now iterates over all rows, including the header row, from 1 to the highestRow.
+
+    This should resolve the issue and ensure that the row heights are expanded as expected. If the issue persists, it may also help to clear any cached files or regenerate the export.
+
+    Row height didn't expand. I want to expand the row height enough to see qr image.
+
+    If you want the row height to automatically expand enough to accommodate the QR code image, you need to adjust the row height dynamically based on the height of the image you are inserting. Since the QR code images are being added to the sheet using the drawings() method, you can adjust the row height based on the height of the image being inserted.
+
+    Here’s how you can do it:
+
+    Get the height of the QR code image.
+    Set the row height dynamically for each row where a QR code is inserted.
+
+    Since you're setting the height of the QR code image to 100 pixels, you can set the row height accordingly.
+
+    Updated registerEvents() method:
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                // Get the total number of rows (including header)
+                $highestRow = count($this->cardNumbers) + 1; // +1 for the header row
+
+
+                // Set row height for all rows
+                for ($row = 1; $row <= $highestRow; $row++) {
+                    $event->sheet->getDelegate()->getRowDimension($row)->setRowHeight(30); // Default height for rows
+                }
+
+
+                // Set row height dynamically for rows with QR codes
+                foreach ($this->qrViews as $index => $qrBase64) {
+                    $rowIndex = $index + 2; // Starting from row 2 (after the header)
+                    $event->sheet->getDelegate()->getRowDimension($rowIndex)->setRowHeight(120); // Adjust to fit QR code image
+                }
+
+
+                // Optional: Set column widths
+                $event->sheet->getDelegate()->getColumnDimension('A')->setWidth(5);
+                $event->sheet->getDelegate()->getColumnDimension('B')->setWidth(20);
+                $event->sheet->getDelegate()->getColumnDimension('C')->setWidth(25);
+            },
+        ];
+    }
+    Explanation:
+    Default Row Height: We set a default row height of 30 for all rows.
+    Dynamically Adjust Row Height: For rows that contain a QR code (starting from row 2), we adjust the row height to 120 to accommodate the image. You can tweak the height based on the actual size of your QR codes.
+    Column Widths: I’ve kept the column width settings for A, B, and C.
+
+    This should ensure that the rows with QR codes have sufficient height to display the image. You can further adjust the row height (e.g., 120) depending on the actual size of your QR code images.
+
+    Let me know if this resolves the issue!
+
+=> Drawing
+    Yes, by default, the image maintains its aspect ratio when you set both width and height. Excel automatically scales the image proportionally, which may cause unexpected resizing.
+    🔧 Solution: Force Exact Width and Height (Ignore Aspect Ratio)
+
+    To make the image strictly fit your specified dimensions, disable proportional resizing:
+    ✅ Fix: Use setResizeProportional(false)
+
+    Modify your drawings() method like this:
+
+    public function drawings()
+    {
+        $drawings = [];
+
+        foreach ($this->imagePaths as $imgData) {
+            $drawing = new Drawing();
+            $drawing->setPath($imgData['path']);
+            $drawing->setResizeProportional(false); // Disable proportional scaling
+            $drawing->setWidth(140); // Set exact width
+            $drawing->setHeight(80); // Set exact height
+            $drawing->setCoordinates($imgData['coordinates']);
+            $drawings[] = $drawing;
+        }
+
+        return $drawings;
+    }
+
+    🔍 Why This Works?
+
+        setResizeProportional(false): Ensures Excel does not maintain the image's aspect ratio.
+
+        setWidth(140) & setHeight(80): Forces the image to strictly follow the dimensions you set.
+
+    With this change, the image will not resize automatically based on its original aspect ratio, and it will appear exactly as specified in the cell. 🚀
+
+    public function columnWidths(): array
+        {
+            $columnWidthPx = 80;
+            $columnWidth = $columnWidthPx;
+            return [
+                'F' => $columnWidth,
+                'G' => $columnWidth,
+                'H' => $columnWidth,
+                'I' => $columnWidth,
+                'J' => $columnWidth,
+                'K' => $columnWidth,
+                'L' => $columnWidth,
+                'M' => $columnWidth,
+            ];
+        }
+    I want to specify column width exactly as the same as  $drawing->setWidth(140);  image width.
+
+    Excel measures column width and image width in different units:
+
+        setWidth(140): The image width is in pixels.
+
+        columnWidths(): The column width in Excel is not in pixels, but in character units based on the default font (Calibri 11pt).
+
+    🔧 Convert Pixels to Column Width in Excel
+
+    To match the column width exactly to setWidth(140), use this formula:
+    Column Width=7Image Width (px)​
+
+    For an image width of 140px:
+    Column Width=7140​=20
+    ✅ Fix: Adjust Column Width
+
+    Modify your columnWidths() function:
+
+    public function columnWidths(): array
+    {
+        $columnWidthPx = 140; // Match image width
+        $columnWidth = $columnWidthPx / 7; // Convert pixels to Excel column width
+        return [
+            'F' => $columnWidth,
+            'G' => $columnWidth,
+            'H' => $columnWidth,
+            'I' => $columnWidth,
+            'J' => $columnWidth,
+            'K' => $columnWidth,
+            'L' => $columnWidth,
+            'M' => $columnWidth,
+        ];
+    }
+
+    🔍 Why This Works?
+
+        Excel column width ≠ Pixels (It's based on character width).
+
+        The conversion formula ensures the column width matches the image width for better alignment.
+
+    This will ensure the images fit perfectly inside their respective columns. 🚀
+
+    <?php
+
+    namespace App\Exports;
+
+    use Maatwebsite\Excel\Events\AfterSheet;
+    use Maatwebsite\Excel\Concerns\WithEvents;
+    use Maatwebsite\Excel\Concerns\WithMapping;
+    use Maatwebsite\Excel\Concerns\WithDrawings;
+    use Maatwebsite\Excel\Concerns\WithHeadings;
+    use PhpOffice\PhpSpreadsheet\Style\Alignment;
+
+    use Maatwebsite\Excel\Concerns\FromCollection;
+    use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+    use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+    use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+    use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+    use Maatwebsite\Excel\Concerns\WithColumnWidths;
+
+    class LogisticsDamageRpBigExport implements FromCollection, WithHeadings, WithDrawings, ShouldAutoSize, WithEvents, WithColumnFormatting, WithMapping,WithColumnWidths
+    {
+        private $sourcingDocuments;
+        private $imagePaths = []; // To store image paths and positions
+
+        public function __construct($sourcingDocuments)
+        {
+            $this->sourcingDocuments = $sourcingDocuments;
+        }
+
+        public function collection()
+        {
+            $data = collect();
+
+            foreach ($this->sourcingDocuments as $docIndex => $document) {
+                foreach ($document->sourcingproduct as $prodIndex => $product) {
+                    // Prepare the row
+                    $rowIndex = $docIndex + $prodIndex + 2; // Start from row 2 (skip header)
+
+                    // Store each image path with its column position
+                    $imageColumnIndex = 'F'; // Start inserting images from column F
+                    foreach ($product->sourcingproductimage as $imgIndex => $image) {
+                        $imagePath = public_path("storage/".$image->media_link); // Convert relative path to full path
+                        // dd($imagePath);
+                        if (file_exists($imagePath)) {
+                            $this->imagePaths[] = [
+                                'path' => $imagePath,
+                                'coordinates' => $imageColumnIndex . $rowIndex, // Example: F2, G2, H2, etc.
+                            ];
+                            $imageColumnIndex++; // Move to the next column for the next image
+                        }
+                    }
+
+                    // Push row data
+                    $data->push([
+                        'Document No' => $document->document_no,
+                        'Product Name' => $product->product_name,
+                        'Product Code' => (string) $product->product_code_no,
+                        'Branch' => $document->branches->branch_name,
+                        'Damage Qty' => $product->stock_quantity,
+                    ]);
+                }
+            }
+
+            return $data;
+        }
+
+        public function headings(): array
+        {
+            return [
+                'Document No',
+                'Product Name',
+                'Product Code',
+                'Branch',
+                'Damage Qty',
+                'Photos' // Images will be placed dynamically starting from column F
+            ];
+        }
+
+        public function drawings()
+        {
+            $drawings = [];
+
+            foreach ($this->imagePaths as $imgData) {
+                $drawing = new Drawing();
+                $drawing->setPath($imgData['path']);
+                $drawing->setResizeProportional(false); // Disable proportional scaling
+                $drawing->setWidth(140); // Adjust height as needed
+                $drawing->setHeight(80); // Adjust height as needed
+                $drawing->setCoordinates($imgData['coordinates']);
+                $drawings[] = $drawing;
+            }
+
+            return $drawings;
+        }
+
+        public function map($row): array
+        {
+            return [
+                $row['Document No'],
+                $row['Product Name'],
+                "\t" . $row['Product Code'],
+                $row['Branch'],
+                $row['Damage Qty'],
+            ];
+        }
+
+        public function columnFormats(): array
+        {
+            return [
+                'C' => NumberFormat::FORMAT_TEXT, // Force 'Product Code' column to be text
+            ];
+        }
+
+
+
+        public function registerEvents(): array
+        {
+            return [
+                AfterSheet::class => function (AfterSheet $event) {
+                    $sheet = $event->sheet->getDelegate();
+                    $totalRows = count($this->sourcingDocuments) + 1; // Include heading row
+
+                    // Set default row height dynamically
+                    foreach (range(2, $totalRows) as $row) {
+                        $rowHeightPx = 80;
+                        $rowHeight = $rowHeightPx * 0.75; // Convert pixels to Excel row height scale
+                        $sheet->getRowDimension($row)->setRowHeight($rowHeight);
+                    }
+
+                    // Set column width (Optional, for better visibility)
+                    foreach (range('A', 'G') as $column) { // Adjust column range based on data
+                        $sheet->getColumnDimension($column)->setAutoSize(true);
+                    }
+
+                    // Set vertical and horizontal alignment
+                    $sheet->getStyle('A1:G' . $totalRows)
+                        ->getAlignment()
+                        ->setVertical(Alignment::VERTICAL_CENTER)
+                        ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                },
+            ];
+        }
+        public function columnWidths(): array
+        {
+            $columnWidthPx = 140;
+            $columnWidth = $columnWidthPx / 7;
+            return [
+                'F' => $columnWidth,
+                'G' => $columnWidth,
+                'H' => $columnWidth,
+                'I' => $columnWidth,
+                'J' => $columnWidth,
+                'K' => $columnWidth,
+                'L' => $columnWidth,
+                'M' => $columnWidth
+            ];
+        }
+    }
+    It doesn't expand the F,G column width. 
+
+    The issue with the column width not expanding could be due to how Excel handles column width and the image placement in Maatwebsite\Excel. The setWidth() method in columnWidths() sets the column width, but it might not always work as expected with dynamic image placements.
+    Key Points to Ensure:
+
+        Column Width Calculation: Column widths in Excel are not measured in pixels directly. They're based on the width of the text in the default font (Calibri, 11pt).
+
+        Image Width and Column Width Sync: When you set the column width programmatically, Excel may not automatically adjust it to accommodate the images you're inserting.
+
+    🔧 Solution: Adjust Column Width Dynamically After Inserting Images
+
+    You may need to set the column width after the images have been inserted or manually adjust it based on the actual content width.
+    Steps:
+
+        Set the column width before inserting images based on the general width of your content.
+
+        Resize the columns dynamically after the images have been placed using the AfterSheet event to adjust based on the content size.
+
+    Updated Code:
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                $sheet = $event->sheet->getDelegate();
+                $totalRows = count($this->sourcingDocuments) + 1; // Include heading row
+
+                // Set default row height dynamically
+                foreach (range(2, $totalRows) as $row) {
+                    $rowHeightPx = 80;
+                    $rowHeight = $rowHeightPx * 0.75; // Convert pixels to Excel row height scale
+                    $sheet->getRowDimension($row)->setRowHeight($rowHeight);
+                }
+
+                // Set column width based on content before inserting images
+                foreach (range('A', 'G') as $column) {
+                    $sheet->getColumnDimension($column)->setAutoSize(true);
+                }
+
+                // Adjust the width of columns containing images (F, G, H, etc.)
+                foreach (range('F', 'M') as $column) {
+                    $sheet->getColumnDimension($column)->setWidth(18); // Adjust as needed
+                }
+
+                // Set vertical and horizontal alignment
+                $sheet->getStyle('A1:G' . $totalRows)
+                    ->getAlignment()
+                    ->setVertical(Alignment::VERTICAL_CENTER)
+                    ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            },
+        ];
+    }
+
+    Explanation:
+
+        Column Width Adjustment: In the registerEvents() method, I’ve added the line to adjust columns F through M specifically for the images. You can adjust the setWidth(18) value based on your image and column size requirements.
+
+        Auto Size for Columns A to G: I've kept setAutoSize(true) for the first few columns, but columns F to M are adjusted explicitly for image width.
+
+    🔍 Why This Works?
+
+        After inserting the images, the columns that will contain them are resized to ensure they fit well.
+
+        The AfterSheet event is the correct place to adjust these settings because it allows you to manipulate the sheet after all content (including images) has been processed.
+
+    This should ensure that the columns containing images are resized appropriately. You can tweak the width to better fit your image dimensions.
+
+=>Multiple View Sheet
+    Yes, you can generate two different views of the same data in an Excel file by separating them into two different sheets. Each sheet can display the data differently — such as summaries, charts, filtered tables, or grouped data — while still referring to the same original data.
+    ✅ Here’s how you can do it:
+    🧩 Example Use Case:
+
+    You have sales data in one sheet, and you want:
+
+        Sheet 1: Full raw sales data.
+
+        Sheet 2: A pivot table summary (e.g. sales per region or product).
+
+        Sheet 3: Charts based on that data.
+
+    🔄 Two Methods to Create This:
+    1. Manually in Excel:
+
+        Sheet1: Paste or import your raw data.
+
+        Sheet2: Use formulas like =Sheet1!A2 or structured references to fetch and transform data.
+
+        Use filters, pivot tables, or charts as needed.
+
+    2. Programmatically (e.g., using Laravel Excel / PHPSpreadsheet):
+
+    In Laravel using Maatwebsite Excel:
+
+    use Maatwebsite\Excel\Facades\Excel;
+    use App\Exports\RawDataSheet;
+    use App\Exports\SummarySheet;
+
+    class MultiSheetExport implements \Maatwebsite\Excel\Concerns\WithMultipleSheets
+    {
+        public function sheets(): array
+        {
+            return [
+                new RawDataSheet(),    // Sheet 1 - raw data
+                new SummarySheet(),    // Sheet 2 - different view (summary, filtered, etc.)
+            ];
+        }
+    }
+
+    return Excel::download(new MultiSheetExport, 'report.xlsx');
+
+    Each sheet class (like RawDataSheet or SummarySheet) can use different logic to return the view you want.
+    🧠 Key Points:
+
+        Excel sheets can reference each other using formulas.
+
+        You can design separate sheets to provide:
+
+            Different filters
+
+            Visualizations (charts, pivot tables)
+
+            Aggregated data
+
+        When exporting programmatically, each sheet can contain different types of data or logic.
+
+    If you’re working with a specific language or tool (Laravel, PHPSpreadsheet, Python, etc.), I can show you a more targeted example. Would you like that?
+
+    <?php
+
+    namespace App\Exports;
+
+    use App\Models\BranchUser;
+    use App\Models\SourcingDocument;
+    use Illuminate\Contracts\View\View;
+    use Maatwebsite\Excel\Concerns\FromView;
+
+    class SourcingPendingExport implements FromView
+    {
+        protected $document_type;
+        protected $detail_type;
+
+
+        public function __construct($document_type='', $detail_type)
+        {
+            $this->document_type = $document_type;
+            $this->detail_type = $detail_type;
+        }
+        public function view(): View
+        {
+            $user_branches = BranchUser::where('user_id', auth()->user()->id)->pluck('branch_id')->toArray();
+            // dd('hi');
+            // $result = SourcingDocument::where('document_type', '=', $this->document_type)
+            // ->whereIn('branch_id', $user_branches)
+            // ->whereIn('document_status', ['1', '2','4', '9','17','19','21'])
+            // ->get();
+            if($this->detail_type == 10 || $this->detail_type == 11 || $this->detail_type == 12)
+            {
+                $result = SourcingDocument::where('document_type', '=', $this->document_type)
+                            ->whereIn('branch_id', $user_branches)
+                            ->get();
+                // dd($result);
+                if($this->document_type == 1)
+                {
+                    $status = 'Small Document';
+                }
+                elseif($this->document_type == 2)
+                {
+                    $status = 'Big Document';
+                }
+                elseif($this->document_type == 3)
+                {
+                    $status = 'Need Accessory Document';
+                }
+                elseif($this->document_type == 4)
+                {
+                    $status = 'Big Not Issue Document';
+                }
+            }
+            elseif($this->detail_type == 3 || $this->detail_type == 6 || $this->detail_type == 9)
+            {
+                $result = SourcingDocument::where('document_type', '=', $this->document_type)
+                            ->whereIn('branch_id', $user_branches)
+                            ->whereIn('document_status', ['3','5','20', '22'])
+                            ->get();
+                // dd($result);
+                if($this->document_type == 1)
+                {
+                    $status = 'Small Reject';
+                }
+                elseif($this->document_type == 2)
+                {
+                    $status = 'Big Reject';
+                }
+                elseif($this->document_type == 3)
+                {
+                    $status = 'Need Accessory Reject';
+                }
+                elseif($this->document_type == 4)
+                {
+                    $status = 'Big Not Issue Document';
+                }
+            }
+            elseif($this->detail_type == 2 ||$this->detail_type == 5 || $this->detail_type == 8)
+            {
+                $result = SourcingDocument::where('document_type', '=', $this->document_type)
+                        ->whereIn('branch_id', $user_branches)
+                        ->whereIn('document_status', ['1', '2','4', '9','17','19','21'])
+                        ->has('products')
+                        ->get();
+                // dd($result);
+                if($this->document_type == 1)
+                {
+                    $status = 'Small Pending';
+                }
+                elseif($this->document_type == 2)
+                {
+                    $status = 'Big Pending';
+                }
+                elseif($this->document_type == 3)
+                {
+                    $status = 'Need Accessory Pending';
+                }
+                elseif($this->document_type == 4)
+                {
+                    $status = 'Big Not Issue Document';
+                }
+            }
+
+            return view('sourcing_documents.export_pending_document', compact('result','status'));
+        }
+    }
+    How to implement multi sheet function. 
+
+    To implement multi-sheet export using your existing SourcingPendingExport logic, you'll need to do the following:
+    ✅ Step-by-step: Multi-sheet Export in Laravel Excel
+    🧩 1. Create a wrapper export class using WithMultipleSheets
+
+    Create a new export class:
+
+    php artisan make:export SourcingPendingMultiSheetExport
+
+    Then update it:
+
+    <?php
+
+    namespace App\Exports;
+
+    use Maatwebsite\Excel\Concerns\WithMultipleSheets;
+
+    class SourcingPendingMultiSheetExport implements WithMultipleSheets
+    {
+        protected $document_type;
+
+        public function __construct($document_type)
+        {
+            $this->document_type = $document_type;
+        }
+
+        public function sheets(): array
+        {
+            return [
+                // First sheet for Pending
+                new SourcingPendingExport($this->document_type, 2), // Pending
+                // Second sheet for Rejects
+                new SourcingPendingExport($this->document_type, 3), // Reject
+                // Third sheet for All (including other types)
+                new SourcingPendingExport($this->document_type, 10), // All
+            ];
+        }
+    }
+
+        You can pass any $detail_type you need to distinguish sheets. Your current SourcingPendingExport already handles the logic depending on $detail_type.
+
+    📄 2. Modify your Controller
+
+    use App\Exports\SourcingPendingMultiSheetExport;
+    use Maatwebsite\Excel\Facades\Excel;
+
+    public function exportSourcingPendingMultiSheet(Request $request)
+    {
+        $document_type = $request->document_type;
+
+        return Excel::download(
+            new SourcingPendingMultiSheetExport($document_type),
+            'sourcing_pending_report.xlsx'
+        );
+    }
+
+    🖥 3. Blade View (export_pending_document.blade.php)
+
+    You don’t need to change your view if the content is generic enough. It will be reused in each sheet based on the status and result passed from each sheet class.
+
+    If you want different layouts per sheet, you can:
+
+        Use a switch in the Blade: @if($status == 'Small Pending') ... @endif
+
+        Or create multiple views and modify SourcingPendingExport to receive a view name.
+
+    📦 Optional Enhancement: Dynamic Sheet Titles
+
+    You can also implement WithTitle in SourcingPendingExport to name each sheet properly:
+
+    use Maatwebsite\Excel\Concerns\WithTitle;
+
+    class SourcingPendingExport implements FromView, WithTitle
+    {
+        // existing code...
+
+        public function title(): string
+        {
+            return $this->status ?? 'Sheet';
+        }
+    }
+
+    Make sure to declare $status as a property and assign it during logic building.
+
+    Would you like me to refactor your SourcingPendingExport class to fully support this structure with proper titles?
+
+    Here's an example of a SourcingPendingExport class using Laravel-Excel, assuming you're exporting a list of pending sourcing data (like pending users, products, etc.).
+
+    This example assumes you're using Laravel-Excel v3+ and want to export a simple spreadsheet with columns like ID, Name, Status, and Created At.
+    ✅ Example: SourcingPendingExport.php
+
+    namespace App\Exports;
+
+    use Maatwebsite\Excel\Concerns\FromCollection;
+    use Maatwebsite\Excel\Concerns\WithHeadings;
+    use Illuminate\Support\Collection;
+    use App\Models\Sourcing;
+
+    class SourcingPendingExport implements FromCollection, WithHeadings
+    {
+        protected $sourcingItems;
+
+        public function __construct($sourcingItems)
+        {
+            $this->sourcingItems = $sourcingItems;
+        }
+
+        public function collection()
+        {
+            $rows = [];
+
+            foreach ($this->sourcingItems as $item) {
+                $rows[] = [
+                    $item->id,
+                    $item->name,
+                    $item->status,
+                    $item->created_at->format('Y-m-d'),
+                ];
+            }
+
+            return collect($rows);
+        }
+
+        public function headings(): array
+        {
+            return [
+                'ID',
+                'Name',
+                'Status',
+                'Created At',
+            ];
+        }
+    }
+
+    ✅ Example usage in a controller:
+
+    use App\Exports\SourcingPendingExport;
+    use Maatwebsite\Excel\Facades\Excel;
+    use App\Models\Sourcing;
+
+    public function exportPendingSourcing()
+    {
+        $pendingItems = Sourcing::where('status', 'pending')->get();
+
+        return Excel::download(new SourcingPendingExport($pendingItems), 'pending_sourcing.xlsx');
+    }
+
+    🔍 Notes:
+
+        This export:
+
+            Uses FromCollection to build the spreadsheet from a Laravel Collection.
+
+            Adds column headers with WithHeadings.
+
+            Formats dates.
+
+        You can extend it with WithMapping, WithStyles, or WithEvents if needed (for styling, formatting, etc.).
+
+    If your use case is more complex (e.g. exporting relationships or joins), let me know and I can adapt the export accordingly.
+
+    I want to show pending document by view.
+
+    If you want to show pending documents in a Blade view (not export to Excel), you can do this using a controller and Blade template instead of Laravel Excel.
+    ✅ Step-by-step: Show pending documents in a Blade view
+    1. ✅ Controller Method
+
+    use App\Models\Document;
+
+    public function showPendingDocuments()
+    {
+        // Fetch documents where status is 'pending'
+        $pendingDocuments = Document::where('status', 'pending')->get();
+
+        return view('documents.pending', compact('pendingDocuments'));
+    }
+
+        Make sure your documents table has a status column (or whatever logic marks a document as pending).
+
+    2. ✅ Blade View: resources/views/documents/pending.blade.php
+
+    @extends('layouts.app')
+
+    @section('content')
+    <div class="container">
+        <h2 class="mb-4">Pending Documents</h2>
+
+        @if($pendingDocuments->isEmpty())
+            <div class="alert alert-info">No pending documents found.</div>
+        @else
+            <table class="table table-bordered">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Document Name</th>
+                        <th>Uploaded By</th>
+                        <th>Status</th>
+                        <th>Created At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($pendingDocuments as $index => $document)
+                    <tr>
+                        <td>{{ $index + 1 }}</td>
+                        <td>{{ $document->name }}</td>
+                        <td>{{ $document->uploaded_by }}</td>
+                        <td><span class="badge badge-warning">{{ ucfirst($document->status) }}</span></td>
+                        <td>{{ $document->created_at->format('Y-m-d') }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+    </div>
+    @endsection
+
+    3. ✅ Route (web.php)
+
+    Route::get('/documents/pending', [DocumentController::class, 'showPendingDocuments'])->name('documents.pending');
+
+    ✅ Example Output
+    #	Document Name	Uploaded By	Status	Created At
+    1	Proposal.pdf	John Doe	Pending	2025-05-17
+    Optional:
+
+    You can add filters, search bar, or pagination with Laravel’s built-in methods like:
+
+    $pendingDocuments = Document::where('status', 'pending')->paginate(10);
+
+    Then update the view:
+
+    {{ $pendingDocuments->links() }}
+
+    Let me know if your "pending" condition depends on something more specific (e.g., approval step, date-based rule, etc.), and I can tailor the logic.
+
+    new SourcingPendingExport($this->document_type, 3), 
+    This export as view.
+
+    Thanks — now I understand! You're using Laravel Excel and you want to export a view (not FromCollection) using a class like SourcingPendingExport, and you're passing parameters like $document_type and status 3 (probably meaning "pending").
+    ✅ Goal:
+
+    You want to export pending documents using Maatwebsite\Excel, and the data should be loaded through a Blade view, not FromCollection.
+    ✅ Solution: Use FromView (not FromCollection)
+
+    Here’s a full example of how to write your SourcingPendingExport class using FromView:
+    📁 app/Exports/SourcingPendingExport.php
+
+    namespace App\Exports;
+
+    use Illuminate\Contracts\View\View;
+    use Maatwebsite\Excel\Concerns\FromView;
+    use App\Models\Document;
+
+    class SourcingPendingExport implements FromView
+    {
+        protected $document_type;
+        protected $status;
+
+        public function __construct($document_type, $status)
+        {
+            $this->document_type = $document_type;
+            $this->status = $status;
+        }
+
+        public function view(): View
+        {
+            $documents = Document::where('document_type', $this->document_type)
+                                ->where('status', $this->status)
+                                ->get();
+
+            return view('exports.sourcing_pending', [
+                'documents' => $documents
+            ]);
+        }
+    }
+
+    📄 resources/views/exports/sourcing_pending.blade.php
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Document Name</th>
+                <th>Uploaded By</th>
+                <th>Status</th>
+                <th>Created At</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($documents as $index => $document)
+            <tr>
+                <td>{{ $index + 1 }}</td>
+                <td>{{ $document->name }}</td>
+                <td>{{ $document->uploaded_by }}</td>
+                <td>{{ $document->status }}</td>
+                <td>{{ $document->created_at->format('Y-m-d') }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+
+        ✅ This will render your data using a Blade view and export it as an Excel file.
+
+    ✅ Usage in Controller
+
+    use App\Exports\SourcingPendingExport;
+    use Maatwebsite\Excel\Facades\Excel;
+
+    public function exportPendingDocuments()
+    {
+        return Excel::download(
+            new SourcingPendingExport('sourcing', 3),
+            'SourcingPendingDocuments.xlsx'
+        );
+    }
+
+    Let me know if you need to include logos, headings, styling, or conditional formatting in the Excel view — I can help with that too.
+
+
