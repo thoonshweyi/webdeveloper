@@ -1,0 +1,356 @@
+bar code, qr code ထုတ်တာ အဆင့်ဆင့်ပြောပြပါ။
+
+ရပါတယ်။ သင့် case မှာ PO document_no တစ်ခုတည်းကို source အဖြစ်သုံးပြီး Barcode + QR Code နှစ်ခုလုံး generate → SVG file သိမ်း → DB မှာ path သိမ်း → PDF print တိုင်း saved SVG ကိုသုံး မယ်။
+
+အဆင့်လိုက်သွားရအောင်။
+
+Flow တစ်ခုလုံး
+PO Create
+   ↓
+document_no
+   │
+   ├── Barcode SVG generate
+   │       ↓
+   │   storage/barcodes/xxx.svg
+   │
+   └── QR SVG generate
+           ↓
+       storage/qrcodes/xxx.svg
+   │
+   ↓
+DB မှာ path နှစ်ခုသိမ်း
+   │
+   ↓
+PDF Print
+   │
+   ├── Barcode SVG ကို load
+   └── QR SVG ကို load
+Step 1 — Barcode package install
+
+Barcode အတွက် picqer/php-barcode-generator သုံးပါ။
+
+composer require picqer/php-barcode-generator
+
+စစ်ရန်—
+
+composer show picqer/php-barcode-generator
+Step 2 — QR Code package install
+
+QR အတွက် Laravel မှာ သင်အရင်သုံးဖူးတဲ့ SimpleSoftwareIO/simple-qrcode ကို သုံးလို့ရပါတယ်။
+
+composer require simplesoftwareio/simple-qrcode
+
+စစ်ရန်—
+
+composer show simplesoftwareio/simple-qrcode
+Step 3 — PO table မှာ path column နှစ်ခုထည့်
+
+PO model/table က purchase_orders ဆိုပါစို့။
+
+Migration create—
+
+php artisan make:migration add_code_paths_to_purchase_orders_table
+
+Migration ထဲမှာ—
+
+Schema::table('purchase_orders', function (Blueprint $table) {
+    $table->string('barcode_path')->nullable();
+    $table->string('qr_code_path')->nullable();
+});
+
+ပြီးရင်—
+
+php artisan migrate
+
+DB မှာ—
+
+barcode_path
+qr_code_path
+
+နှစ်ခုရပါမယ်။
+
+Step 4 — Model $fillable
+
+PurchaseOrder model မှာ $fillable သုံးထားရင်—
+
+protected $fillable = [
+    // ...
+    'barcode_path',
+    'qr_code_path',
+];
+
+ထည့်ပါ။
+
+Step 5 — Barcode + QR generate service တစ်ခုလုပ်
+
+ကျွန်တော်က Controller ထဲမှာ code အများကြီးထည့်မယ့်အစား Service တစ်ခုလုပ်ဖို့ အကြံပြုပါတယ်။
+
+php artisan make:class Services/DocumentCodeService
+
+မရတဲ့ Laravel version ဆိုရင် file ကို manually—
+
+app/Services/DocumentCodeService.php
+
+လုပ်ပါ။
+
+ပြီးရင်—
+
+<?php
+
+namespace App\Services;
+
+use Illuminate\Support\Facades\Storage;
+use Picqer\Barcode\BarcodeGeneratorSVG;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
+
+class DocumentCodeService
+{
+    public function generate(string $documentNo): array
+    {
+        $safeName = str_replace(['/', '\\'], '-', $documentNo);
+
+        /*
+         * Barcode
+         */
+        $barcodeGenerator = new BarcodeGeneratorSVG();
+
+        $barcodeSvg = $barcodeGenerator->getBarcode(
+            $documentNo,
+            BarcodeGeneratorSVG::TYPE_CODE_128
+        );
+
+        $barcodePath = "barcodes/{$safeName}.svg";
+
+        Storage::disk('public')->put(
+            $barcodePath,
+            $barcodeSvg
+        );
+
+        /*
+         * QR Code
+         */
+        $qrSvg = QrCode::format('svg')
+            ->size(300)
+            ->margin(0)
+            ->generate($documentNo);
+
+        $qrPath = "qrcodes/{$safeName}.svg";
+
+        Storage::disk('public')->put(
+            $qrPath,
+            $qrSvg
+        );
+
+        return [
+            'barcode_path' => $barcodePath,
+            'qr_code_path' => $qrPath,
+        ];
+    }
+}
+
+ဒီ method က—
+
+document_no
+    ↓
+Barcode SVG
+    ↓
+storage/app/public/barcodes/PO-xxx.svg
+
+document_no
+    ↓
+QR SVG
+    ↓
+storage/app/public/qrcodes/PO-xxx.svg
+
+လုပ်ပေးပါမယ်။
+
+Step 6 — Storage link
+
+storage/app/public ထဲမှာ file သိမ်းမှာဖြစ်လို့—
+
+php artisan storage:link
+
+လုပ်ပါ။
+
+ဒါဆို—
+
+storage/
+
+က—
+
+public/storage/
+
+နဲ့ link ဖြစ်သွားပါမယ်။
+
+Step 7 — PO create လုပ်တဲ့နေရာမှာ generate
+
+ဥပမာ သင့် Controller မှာ PO create ပြီးတဲ့နောက်—
+
+use App\Services\DocumentCodeService;
+
+ပြီးရင်—
+
+$po = PurchaseOrder::create([
+    // your PO data
+]);
+
+ပြီးတဲ့နောက်—
+
+$codeService = app(DocumentCodeService::class);
+
+$paths = $codeService->generate(
+    $po->document_no
+);
+
+$po->update($paths);
+
+အဲ့ဒီအချိန်မှာ DB က—
+
+document_no       = POLAN1260824-001
+
+barcode_path      = barcodes/POLAN1260824-001.svg
+
+qr_code_path      = qrcodes/POLAN1260824-001.svg
+
+ဖြစ်သွားပါမယ်။
+
+Step 8 — File တကယ်ရှိမရှိ စစ်
+
+Linux မှာ—
+
+ls storage/app/public/barcodes
+
+ရလဒ်—
+
+POLAN1260824-001.svg
+
+ပြီးတော့—
+
+ls storage/app/public/qrcodes
+
+ရလဒ်—
+
+POLAN1260824-001.svg
+
+ဖြစ်ရပါမယ်။
+
+Step 9 — mPDF မှာ Barcode ထည့်
+
+ဒီနေရာမှာ public_path('storage/...') သုံးတာကို အကြံပြုပါတယ်။
+
+Blade:
+
+<img
+    src="{{ public_path('storage/' . $po_document->barcode_path) }}"
+    style="width:55mm; height:12mm;"
+    alt="Barcode"
+>
+
+QR:
+
+<img
+    src="{{ public_path('storage/' . $po_document->qr_code_path) }}"
+    style="width:18mm; height:18mm;"
+    alt="QR Code"
+>
+
+သင့် PO header မှာဆို—
+
+<td width="20%" class="doc-block">
+
+    <div class="barcode-space">
+        <img
+            src="{{ public_path('storage/' . $po_document->barcode_path) }}"
+            class="po-barcode"
+            alt="Barcode"
+        >
+    </div>
+
+    <div class="page-line">
+        Pages <span>{PAGENO}/{nbpg}</span>
+    </div>
+
+    <img
+        src="{{ public_path('storage/' . $po_document->qr_code_path) }}"
+        class="qr"
+        alt="QR Code"
+    >
+
+</td>
+
+CSS—
+
+.barcode-space {
+    text-align: center;
+    padding-top: 3px;
+}
+
+.po-barcode {
+    width: 55mm;
+    height: 12mm;
+}
+
+.qr {
+    width: 18mm;
+    height: 18mm;
+    margin-top: 5px;
+}
+Step 10 — အရေးကြီး: document_no ကိုပဲ encode လုပ်ထားတာ
+
+သင်ပြောထားတဲ့ requirement အရ—
+
+Barcode
+POLAN1260824-001
+
+ကို Code 128 နဲ့ encode လုပ်ထားမယ်။
+
+QR
+
+QR ထဲမှာလည်း—
+
+POLAN1260824-001
+
+ပဲရှိမယ်။
+
+ဆိုတော့ scan လုပ်ရင်—
+
+Barcode → POLAN1260824-001
+
+QR Code → POLAN1260824-001
+
+ဖြစ်ပါမယ်။
+
+Final folder structure
+
+နောက်ဆုံးမှာ—
+
+app/
+├── Services/
+│   └── DocumentCodeService.php
+│
+storage/
+└── app/
+    └── public/
+        ├── barcodes/
+        │   └── POLAN1260824-001.svg
+        │
+        └── qrcodes/
+            └── POLAN1260824-001.svg
+
+DB:
+
+purchase_orders
+
+document_no
+barcode_path
+qr_code_path
+
+ဥပမာ—
+
+POLAN1260824-001
+barcodes/POLAN1260824-001.svg
+qrcodes/POLAN1260824-001.svg
+
+ဒီ architecture က print တိုင်း generate မလုပ်ဘဲ create တုန်းက တစ်ခါ generate လုပ်ထားပြီး PDF မှာ saved file ကိုပဲသုံးတာ ဖြစ်ပါတယ်။
+
+တစ်ချက်သတိထားရန်: document_no ကို နောက်ပိုင်း edit/change လုပ်ခွင့်ရှိရင် document_no ပြောင်းတဲ့အချိန်မှာ Barcode + QR ကိုလည်း regenerate လုပ်ရပါမယ်။ document_no က immutable ဖြစ်ရင် အခု design အတိုင်း အဆင်ပြေပါတယ်။
