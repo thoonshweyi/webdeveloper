@@ -1,0 +1,38 @@
+Step 1: လိုအပ်သော Packages များနှင့် PPA ထည့်သွင်းခြင်း
+    ပထမဦးစွာ System ကို update လုပ်ပြီး PPA repository ထည့်သွင်းရန် လိုအပ်သည်များကို ထည့်ပါ။
+
+    sudo apt update
+    sudo apt install software-properties-common
+    sudo add-apt-repository ppa:ondrej/php
+    sudo apt update
+
+Step 2: PHP 8.3 နှင့် လိုအပ်သော Extensions များ တပ်ဆင်ခြင်း
+
+    sudo apt install php8.3
+    sudo apt install php8.3-{bcmath,xml,fpm,mysql,zip,intl,ldap,gd,cli,bz2,curl,mbstring,pgsql,opcache,soap,cgi}
+
+
+Step 3: Apache သို့မဟုတ် Nginx (Web Server) ကို PHP 8.3 သို့ ချိတ်ဆက်ခြင်း
+    အကယ်၍ Apache ကို အသုံးပြုနေပါက -
+
+    Bash
+    sudo a2dismod php8.2
+    sudo a2enmod php8.3
+    sudo systemctl restart apache2
+    အကယ်၍ Nginx + PHP-FPM ကို အသုံးပြုနေပါက /etc/nginx/sites-available/ ရှိသင့်ရဲ့ configuration ဖိုင်ထဲတွင် PHP-FPM socket ကို ပြောင်းပေးရပါမည်။
+
+    Nginx
+    fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
+    ပြီးနောက် Nginx ကို restart လုပ်ပါ -
+
+    sudo systemctl restart php8.3-fpm
+    sudo systemctl restart nginx
+Step 4: CLI Default PHP ဗားရှင်းကို ပြောင်းလဲခြင်း
+    Terminal တွင် php -v ခေါ်သည့်အခါ PHP 8.3 ဖြစ်နေစေရန် အောက်ပါ ትوامကို အသုံးပြုပါ -
+
+    sudo update-alternatives --set php /usr/bin/php8.3
+    Step 5: တပ်ဆင်မှု အောင်မြင်ကြောင်း စစ်ဆေးခြင်း
+    ဗားရှင်းအသစ်သို့ မှန်ကန်စွာ ရောက်ရှိပြီဖြစ်ကြောင်း အတည်ပြုရန် -
+
+    php -v
+    ယခုအခါ PHP 8.3 သို့ အောင်မြင်စွာ မြှင့်တင်ပြီးဖြစ်ပါမည်။

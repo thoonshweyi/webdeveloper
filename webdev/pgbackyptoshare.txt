@@ -1,0 +1,149 @@
+ubuntu server ကနေ window share folder  ထဲကို Postgre database .backup file ကို cron job နဲ့ပို့ချင်တယ်။
+ရပါတယ်။ အခုရှိပြီးသား Windows Share Folder ကိုပဲ အသုံးပြုပြီး Ubuntu Server ကနေ PostgreSQL .backup file ကို Cron Job နဲ့ သတ်မှတ်ထားတဲ့အချိန်မှာ တစ်ခါတည်းပို့မယ်။
+
+ဒီနည်းမှာ -
+
+အမြဲတမ်း Sync လုပ်နေစရာမလိုပါ။
+
+Mount / Unmount လုပ်စရာမလိုပါ။
+
+Cron အလုပ်လုပ်တဲ့အချိန်မှသာ Backup ယူပြီး Windows Share ထဲပို့ပါမယ်။
+
+အရင်ဆုံး smbclient နဲ့ တိုက်ရိုက်ပို့တဲ့နည်းကို သုံးပါမယ်။
+
+1. လက်ရှိ Windows Share အချက်အလက်
+အရင်ပြောထားတဲ့ Share ကို အသုံးပြုပါမယ်။
+
+Item
+
+Value
+
+Windows IP
+
+192.168.2.247
+
+Share Name
+
+sd
+
+Folder
+
+batchbackup
+
+Destination
+
+batchbackup/backup/appname
+
+2. smbclient Install လုပ်ပါ
+Ubuntu Server မှာ -
+
+sudo apt update
+sudo apt install smbclient -y
+
+Windows Share ကို ဝင်ကြည့်လို့ရမရ စမ်းပါ။
+
+smbclient //192.168.2.247/sd -U YOUR_USERNAME
+
+Login ဝင်နိုင်ရင် exit နဲ့ထွက်ပါ။
+
+3. Windows Share Credentials သိမ်းပါ
+sudo nano /root/.smbcredentials
+
+အောက်ပါအတိုင်းထည့်ပါ။
+
+username=YOUR_USERNAME
+password=YOUR_PASSWORD
+Permission သတ်မှတ်ပါ။
+
+sudo chmod 600 /root/.smbcredentials
+
+4. Backup Script ရေးပါ
+sudo nano /usr/local/bin/pg_backup_to_share.sh
+
+အောက်ပါ Code ထည့်ပါ။
+
+#!/bin/bash
+
+# PostgreSQL Database
+DB_NAME="your_database"
+
+# Local temporary backup
+BACKUP_DIR="/tmp/pg_backup"
+
+# Windows Share
+SHARE="//192.168.2.247/sd"
+
+REMOTE_DIR="batchbackup/backup/appname"
+
+# Date
+DATE=$(date +%Y%m%d_%H%M%S)
+
+FILE="${DB_NAME}_${DATE}.backup"
+
+mkdir -p "$BACKUP_DIR"
+
+# Create PostgreSQL Backup
+runuser -u postgres -- pg_dump \
+    -Fc \
+    -f "$BACKUP_DIR/$FILE" \
+    "$DB_NAME"
+
+if [ $? -ne 0 ]; then
+    echo "PostgreSQL backup failed"
+    exit 1
+fi
+
+# Upload to Windows Share
+smbclient "$SHARE" \
+    -A /root/.smbcredentials \
+    -c "cd $REMOTE_DIR; put $BACKUP_DIR/$FILE"
+
+if [ $? -eq 0 ]; then
+    echo "Backup uploaded successfully"
+
+    rm -f "$BACKUP_DIR/$FILE"
+else
+    echo "Upload failed"
+    exit 1
+fi
+
+your_database ကို ကိုယ့် PostgreSQL Database Name နဲ့ အစားထိုးပါ။
+
+Script ကို Execute Permission ပေးပါ။
+
+sudo chmod +x /usr/local/bin/pg_backup_to_share.sh
+
+5. Cron Job ထည့်ပါ
+sudo crontab -e
+
+နေ့တိုင်း မနက် 1 နာရီမှာ Backup ယူချင်ရင် -
+
+0 1 * * * /usr/local/bin/pg_backup_to_share.sh >> /var/log/pg_backup.log 2>&1
+
+6. စမ်းသပ်ကြည့်ပါ
+Cron မစောင့်ဘဲ အရင်စမ်းပါ။
+
+sudo /usr/local/bin/pg_backup_to_share.sh
+
+Windows Share ထဲမှာ .backup file ရောက်လာရင် အောင်မြင်ပါပြီ။
+
+အဓိကအားသာချက်
+ဒီနည်းက အောက်ပါအတိုင်း အလုပ်လုပ်ပါမယ်။
+
+Ubuntu Server
+
+Cron – နေ့တိုင်း မနက် 1 နာရီ
+
+PostgreSQL pg_dump
+
+.backup file ထုတ်မယ်
+
+SMB Upload
+
+smbclient ဖြင့် တိုက်ရိုက်ပို့မယ်
+
+Windows Share
+
+sd/batchbackup/backup/appname
+
+တစ်ချက်ပဲ သိချင်ပါတယ်။ Windows Share ထဲမှာ batchbackup/backup/appname ဆိုတဲ့ Folder တွေကို ကြိုတင်ဖန်တီးထားပြီးပြီလား။ Folder မရှိသေးရင်လည်း အလိုအလျောက်ဖန်တီးပေးတဲ့ပုံစံ ပြင်ပေးနိုင်ပါတယ်။
