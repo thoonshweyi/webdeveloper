@@ -1,0 +1,87 @@
+Project များကို PHP Worker ခွဲပေးခြင်း
+
+sudo nano /etc/php/8.3/fpm/pool.d/product_qr_stand.conf
+
+[product_qr_stand]
+
+
+user = www-data
+group = www-data
+
+
+listen = /run/php/php8.3-fpm-product-qr.sock
+listen.owner = www-data
+listen.group = www-data
+listen.mode = 0660
+
+
+pm = dynamic
+pm.max_children = 4
+pm.start_servers = 1
+pm.min_spare_servers = 1
+pm.max_spare_servers = 2
+pm.max_requests = 500
+
+
+
+
+[receive_goods] for 10 workers
+
+user = www-data
+group = www-data
+
+listen = /run/php/php8.1-fpm-receive-goods.sock
+listen.owner = www-data
+listen.group = www-data
+listen.mode = 0660
+
+pm = dynamic
+pm.max_children = 10
+pm.start_servers = 2
+pm.min_spare_servers = 2
+pm.max_spare_servers = 5
+
+pm.max_requests = 500
+
+catch_workers_output = yes
+—-------------------------------------------
+[lucky_draw] for 5 workers
+
+user = www-data
+group = www-data
+
+listen = /run/php/php8.1-fpm-lucky-draw.sock
+listen.owner = www-data
+listen.group = www-data
+listen.mode = 0660
+
+pm = dynamic
+pm.max_children = 5
+pm.start_servers = 2
+pm.min_spare_servers = 1
+pm.max_spare_servers = 3
+
+pm.max_requests = 500
+
+catch_workers_output = yes
+—-------------------------------------------------------------
+
+sudo php-fpm8.3 -t
+sudo systemctl restart php8.3-fpm
+ls -l /run/php/php8.3-fpm-product-qr.sock
+
+Nginx config 
+location ~ \.php$ {
+    include snippets/fastcgi-php.conf;
+    fastcgi_pass unix:/run/php/php8.3-fpm-product-qr.sock;
+}
+
+
+sudo nginx -t
+sudo systemctl reload nginx
+
+
+sudo mv /etc/php/8.1/fpm/pool.d/www.conf \
+/etc/php/8.1/fpm/pool.d/www.conf.disabled
+
+

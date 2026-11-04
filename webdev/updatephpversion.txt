@@ -1,3 +1,8 @@
+Step 1 — Ubuntu နဲ့ PHP Version စစ်ပါ
+lsb_release -a
+php -v
+
+
 Step 1: လိုအပ်သော Packages များနှင့် PPA ထည့်သွင်းခြင်း
     ပထမဦးစွာ System ကို update လုပ်ပြီး PPA repository ထည့်သွင်းရန် လိုအပ်သည်များကို ထည့်ပါ။
 
@@ -36,3 +41,24 @@ Step 4: CLI Default PHP ဗားရှင်းကို ပြောင်း�
 
     php -v
     ယခုအခါ PHP 8.3 သို့ အောင်မြင်စွာ မြှင့်တင်ပြီးဖြစ်ပါမည်။
+
+
+စနစ်ထဲမှာ PHP 8.3 ကို တပ်ဆင်ထားပြီးသော်လည်း php -v ခေါ်လိုက်တဲ့အခါ PHP 8.2 ပဲ ပြနေသေးတာက CLI (Command Line Interface) ရဲ့ default PHP version ကို PHP 8.3 သို့ မပြောင်းရသေးလို့ ဖြစ်ပါတယ်။
+
+/etc/php/ ထဲမှာ 8.3 ရှိနေပြီဖြစ်တဲ့အတွက် အောက်ပါအဆင့်အတိုင်း CLI default version ကို ပြောင်းပေးလိုက်ရုံနဲ့ အဆင်ပြေသွားပါလိမ့်မယ် -
+
+အဆင့် ၁: CLI Default PHP ဗားရှင်းကို 8.3 သို့ ပြောင်းရန်
+Terminal တွင် အောက်ပါ ትوامကို ရိုက်ထည့်ပါ -
+
+Bash
+sudo update-alternatives --set php /usr/bin/php8.3
+(တကယ်လို့ အပေါ်က command က "no alternatives for php" လို့ Error တက်လာခဲ့ရင် အောက်ပါ command ကို သုံးပြီး အရင် register လုပ်ပေးပါ -)
+
+Bash
+sudo update-alternatives --install /usr/bin/php php /usr/bin/php8.3 83
+sudo update-alternatives --set php /usr/bin/php8.3
+အဆင့် ၂: အောင်မြင်ကြောင်း စစ်ဆေးရန်
+ပြောင်းလဲပြီးပါက ဗားရှင်းမှန်ကန်စွာ ရောက်ရှိပြီဖြစ်ကြောင်း အတည်ပြုရန် -
+
+Bash
+php -v
