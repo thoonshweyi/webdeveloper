@@ -1,0 +1,753 @@
+504 timeout error တက်တာက ဘယ် config time ကိုကျော်ရင်တက်တာလဲ
+
+504 Gateway Timeout error တက်လာရခြင်းသည် Server (သို့) Proxy တစ်ခုက နောက်ကပ်ရှိ Server (Upstream / Backend) ဆီမှ Data (သို့) Response ကို သတ်မှတ်ထားသော အချိန်အတွင်း ပြန်မရလိုက်သည့်အခါ ဖြစ်ပေါ်တတ်ပါသည်။   
+Authgear
+
+အဓိကကျော်လွန်သွားလျှင် 504 Error တက်တတ်သော Config Times များနှင့် ပုံမှန် Default တန်ဖိုးများမှာ အောက်ပါအတိုင်း ဖြစ်ပါသည် -
+
+၁။ Nginx Server
+proxy_read_timeout (အဖြစ်အများဆုံး): Nginx က Reverse Proxy အနေဖြင့် Backend server (Node.js, Python, Ruby စသည်) ဆီမှ Response ပြန်လာရန် စောင့်သည့်အချိန်။   
+GetPageSpeed
++ 1
+
+Default: 60 စက္ਕန့် (ဒီအချိန်ထقي ကျော်လွန်သွားပါက 504 တက်ပါမည်)။   
+GetPageSpeed
+
+fastcgi_read_timeout: PHP-FPM သုံးထားသည့် Website များတွင် PHP script တစ်ခု လုပ်ဆောင်ပြီးစီးရန် စောင့်သည့်အချိန်။   
+Veeble Hosting
++ 1
+
+Default: 60 စက္ကန့်။
+
+proxy_connect_timeout: Backend Server နှင့် Connection စတင်ချိတ်ဆက်ရန် စောင့်သည့်အချိန် (ပုံမှန်အားဖြင့် Connection ချိတ်ပြီးသားဆိုတော့ ဒီဟာကြောင့် 504 ရှားပါသည်)။   
+Veeble Hosting
++ 1
+
+Default: 60 စက္ਕန့်။   
+Authgear
+
+၂. Apache Web Server
+ProxyTimeout (သို့မဟုတ် Timeout): Apache ကို Reverse Proxy အဖြစ် သုံးထားစဉ် သို့မဟုတ် Server မိမိဘာသာ Request ကို စောင့်ဆိုင်းသည့် အချိန်။
+
+Default: 60 စက္ਕန့်။
+
+၃. Cloudflare (CDN)
+Website ရှေ့တွင် Cloudflare ခံထားပါက Cloudflare ၏ Server နှင့် သင့် Hosting Server အကြား ဆက်သွယ်မှုတွင် အချိန်ကြာသွားခြင်း။
+
+Default: Free/Pro Plan များတွင် 100 စက္ਕန့် (Enterprise တွင် ပိုတိုး၍ရပါသည်)။
+
+၄. Cloud Load Balancers (ဥပမာ - AWS ALB / ELB)
+Load Balancer မှ Target Group သို့မဟုတ် Instance ဆီသို့ Request ပေးပို့ပြီး Response ပြန်စောင့်သည့် Idle Timeout။
+
+Default: 60 စက္ਕန့် (လိုသလို တိုးမြှင့်ပြင်ဆင်နိုင်သည်)။
+
+ဘယ်လို ဖြေရှင်းရမလဲ?
+အကယ်၍ သင်၏ Database Query ကြီးခြင်း၊ Report ထုတ်ခြင်း သို့မဟုတ် API ခေါ်ဆိုမှုတစ်ခုက ကြီးမားပြီး 60 စက္ကန့်ထက် ပိုကြာနေမည်ဆိုပါက -   
+Veeble Hosting
+
+Nginx တွင်ဆိုလျှင် Server Config (nginx.conf) သို့မဟုတ် Site Block ထဲတွင် အောက်ပါအတိုင်း တိုးမြှင့်ပေးရပါမည် -   
+Veeble Hosting
+
+Nginx
+proxy_read_timeout 300s;
+proxy_connect_timeout 300s;
+proxy_send_timeout 300s;
+PHP သုံးထားပါက fastcgi_read_timeout 300s; နှင့်အတူ PHP ၏ max_execution_time ကိုပါ တွဲ၍ တိုးပေးရပါမည်။
+
+သို့သော် Config အချိန်ကို တိုးမြှင့်မည့်အစား ကြာမြင့်နေသော Database Query များနှင့် Code ပိုင်းဆိုင်ရာ Performance ကို ဦးစားပေး ဖြေရှင်းခြင်းက ပို၍ အကောင်းဆုံး ဖြစ်ပါသည်။
+
+max_execution_time = 300
+
+
+
+php မှာဒါသတ်မှတ်ထားရုံနဲ့မရဘူးလား
+
+ဟုတ်ကဲ့၊ PHP မှာ max_execution_time = 300 လို့ သတ်မှတ်ထားရုံနဲ့ အလုပ်မဖြစ်တာ၊ (သို့) 504 Timeout Error ဆက်တက်နေတာမျိုးတွေ ဖြစ်တတ်ပါတယ်။
+
+အကြောင်းရင်းကတော့ PHP script တစ်ခု အလုပ်လုပ်တဲ့အခါ သက်ဆိုင်ရာ Web Server (Nginx/Apache)၊ PHP-FPM ဒါမှမဟုတ် Reverse Proxy တွေဘက်မှာပါ အချိန်သတ်မှတ်ချက် (Timeout) တွေ ရှိနေသေးလို့ ဖြစ်ပါတယ်။
+
+முழுပြည့်စုံစွာ အလုပ်လုပ်ဖို့အတွက် အောက်ပါနေရာတွေမှာပါ အတူတူ ချိန်ညှိပေးဖို့ လိုအပ်ပါတယ် -
+
+၁။ Nginx နှင့် PHP-FPM Configuration တွေမှာပါ တိုးပေးရပါမယ်
+သင်ဟာ Nginx နဲ့ PHP-FPM သုံးနေတယ်ဆိုရင် Nginx ဘက်က Request ကို စောင့်ပေးတဲ့ အချိန်က ပိုနည်းနေတတ်ပါတယ် (ဥပမာ- Default ၆၀ စက္ကန့်)။
+
+Nginx Config (nginx.conf သို့မဟုတ် Site Config):
+
+Nginx
+proxy_read_timeout 300s;
+proxy_send_timeout 300s;
+PHP-FPM Pool Config (www.conf):
+အချို့ Server တွေမှာ PHP-FPM ရဲ့ Request timeout ကိုပါ သီးသန့်ကန့်သတ်ထားတတ်ပါတယ် -
+
+Ini, TOML
+request_terminate_timeout = 300s;
+၂။ Web Server ကို Restart ချဖို့ လိုပါတယ်
+php.ini ဖိုင်မှာ max_execution_time = 300 လို့ ပြင်လိုက်ရုံနဲ့ ပြီးမသွားပါဘူး။ ပြောင်းလဲမှုတွေ အသက်ဝင်စေရန် PHP-FPM နဲ့ Web Server ကို Restart ချပေးရပါမယ် -
+
+Nginx အတွက်: sudo systemctl restart nginx
+
+PHP-FPM အတွက် (Ubuntu/Debian ဥပမာ): sudo systemctl restart php8.1-fpm (သင့်သုံးနေတဲ့ PHP Version အလိုက် ပြောင်းရန်)
+
+၃။ Script ထဲမှာ တိုက်ရ້ອງ သတ်မှတ်ခြင်း (Runtime)
+အကယ်၍ php.ini ဖိုင်ကို မပြင်ချင်ဘူး (သို့) Shared Hosting ဖြစ်လို့ ပြင်လို့မရဘူးဆိုရင် သက်ဆိုင်ရာ PHP File ရဲ့ အပေါ်ဆုံးမှာ ဒီကုဒ်ကို ထည့်သုံးနိုင်ပါတယ် -
+
+PHP
+set_time_limit(300);
+(မှတ်ချက်။ Server ရဲ့ safe_mode သို့မဟုတ် max_execution_time ကို disable_functions ထဲမှာ ပိတ်ထား ခွင့်မပြုထားဘူးဆိုရင်တော့ ဒီကုဒ် အလုပ်မလုပ်ပါဘူး)
+
+၄။ Memory Limit ကိုပါ စစ်ဆေးပါ
+အချိန်ကြာမြင့်စွာ လုပ်ဆောင်ရမည့် Script တွေ (ဥပမာ- ကြီးမားတဲ့ Data Export လုပ်ခြင်း၊ Image/Video Process လုပ်ခြင်း) ဟာ အချိန်တင်မကဘဲ Memory (RAM) ပါ ပိုစားတတ်ပါတယ်။ max_execution_time များထားပေမယ့် Memory ကုန်သွားရင် Allowed memory size exhausted ဆိုပြီး Error တက်ကာ ရပ်သွားပါလိမ့်မယ်။
+
+လိုအပ်ပါက php.ini ထဲတွင် Memory ကိုပါ တိုးပေးပါ -
+
+Ini, TOML
+memory_limit = 512M;
+max_execution_time = 300
+
+၅မိနစ်နေမှာ 504 ဖြစ်မှာလား
+
+ဟုတ်ကဲ့၊ max_execution_time = 300 (၅ မိနစ်) သတ်မှတ်ထားရင်တောင် အခြား ဆာဗာ Config တွေက နည်းနေသေးရင် ၅ မိနစ်ပြည့်ဖို့ မလိုဘဲ စောပြီး 504 Gateway Timeout Error တက်သွားနိုင်ပါတယ်။
+
+အကြောင်းရင်းကတော့ ဆာဗာလွှာ (Server Layer) အမျိုးမျိုးမှာ Timeout အချိန်တွေ သတ်မှတ်ထားရှိပြီးသား ဖြစ်နေလို့ပါ -
+
+ဘာကြောင့် 504 Error ဆက်တက်နိုင်တာလဲ?
+၁။ Nginx ရဲ့ Proxy Timeout (proxy_read_timeout)
+
+Nginx ကို သုံးနေတယ်ဆိုရင် Default အားဖြင့် ၆၀ စက္ကန့် (၁ မိနစ်) သို့မဟုတ် အများဆုံး ၁၂၀ စက္ကန့်ပဲ စောင့်ပေးတတ်ပါတယ်။
+
+PHP က ၅ မိနစ်ထိ ဆက်တွက်နေချင်ပေမဲ့ Nginx က ၆၀ စက္කန့်ပြည့်တာနဲ့ Backend ဘက်က Response ချက်ချင်းမလာလို့ဆိုပြီး သူ့ဖာသာ 504 Error ဖြတ်ထုတ်ပြလိုက်ပါလိမ့်မယ်။
+
+၂။ Cloudflare (သို့) Load Balancer Timeout
+
+သင့် Website ရှေ့မှာ Cloudflare ခံထားတယ်ဆိုရင် Cloudflare ရဲ့ Standard Timeout က အများဆုံး ၁၀၀ စက္ကန့် ဖြစ်ပါတယ်။
+
+၁၀၀ စက္ကန့်ကျော်သွားရင် ဆာဗာဘက်က အလုပ်လုပ်နေဆဲဖြစ်ပေမဲ့ Cloudflare ဘက်က 504 Gateway Time-out ဆိုပြီး ပြჩပြလိမ့်မယ်။
+
+၃. PHP-FPM Request Termination Timeout
+
+PHP-FPM မှာ request_terminate_timeout ဆိုတာ ရှိပါတယ်။ အဲ့ဒီတန်ဖိုးက max_execution_time ထက် နည်းနေမယ် (ဥပမာ- ၆၀ စက္ကန့်) ဆိုရင် PHP ကပါ အတင်းရပ်ပစ်လိုက်မှာ ဖြစ်ပါတယ်။
+
+၅ မိနစ် အမှန်တကယ် အလုပ်လုပ်စေချင်ရင် ဘာတွေ ချိန်ညှိရမလဲ?
+အကယ်၍ သင်လုပ်မယ့် လုပ်ငန်းစဉ်က (ဥပမာ - ကြီးမားတဲ့ Database Import/Export လုပ်တာ၊ Report ထုတ်တာ စသည်ဖြင့်) ၅ မိနစ်လောက် အမှန်တကယ် ကြာမြင့်မယ်ဆိုရင် အောက်ပါနေရာတွေအားလုံးမှာ ၅ မိနစ် (သို့) ၃၀၀ စက္ਕန့် (သို့) အဲ့ဒီထက်ပိုများသော အချိန် ကို ညီတူညီမျှ ချိန်ပေးဖို့ လိုပါတယ် -
+
+PHP php.ini:
+
+Ini, TOML
+max_execution_time = 300
+max_input_time = 300
+memory_limit = 512M
+Nginx Config (nginx.conf):
+
+Nginx
+proxy_read_timeout 300s;
+proxy_send_timeout 300s;
+fastcgi_read_timeout 300s;
+Cloudflare သုံးထားလျှင်:
+
+ကြီးမားတဲ့ Request တွေအတွက် Cloudflare ရဲ့ Timeout ကန့်သတ်ချက်ကြောင့် အဆင်မပြေဖြစ်တတ်ပါက အဆိုပါ Page/Route သို့ Direct ချိတ်ဆက်နိုင်ရန် စဉ်းစားရပါမယ်။ (သို့မဟုတ် Cloudflare Enterprise Plan တွေမှသာ Timeout တိုးမြှင့်လို့ရပါတယ်။)
+
+Nginx ကို သုံးနေတယ်ဆိုရင် Default အားဖြင့် ၆၀ စက္ကန့် (၁ မိနစ်) သို့မဟုတ် အများဆုံး ၁၂၀ စက္ကန့်ပဲ စောင့်ပေးတတ်ပါတယ်။
+
+nginx ကိုပါ ၅မိနစ်ထိစောင့်ပေးဖို့လုပ်ရမလား
+
+ဟုတ်ကဲ့၊ အမှန်တကယ် ၅ မိနစ် (၃၀၀ စက္ကန့်) အထိ ကြာမယ့် Process တွေ (ဥပမာ - ကြီးမားတဲ့ Database Import/Export လုပ်တာ၊ Report တွေ အများကြီး ဆွဲထုတ်တာ စသည်ဖြင့်) လုပ်ဆောင်နေရပြီဆိုရင် Nginx ဘက်မှာပါ ၅ မိနစ်ပြည့်အောင် အသေအချာ ချိန်ညှိပေးဖို့ လိုအပ်ပါတယ်။
+
+မဟုတ်ရင်တော့ PHP မှာ max_execution_time = 300 လို့ ဘယ်လောက်ပဲ ပေးထားပါစေ၊ Nginx က ၆၀ စက္ကန့် (သို့) ၁၂၀ စက္ကန့်နဲ့ တင် 504 Gateway Timeout Error ထုတ်ပြပြီး လမ်းမှာတင် ဖြတ်ချပစ်လိုက်ပါလိမ့်မယ်။
+
+Nginx မှာ ၅ မိနစ်ထိ စောင့်ပေးနိုင်အောင် အောက်ပါအတိုင်း ပြင်ဆင်ရပါမယ် -
+
+Nginx Timeout ချိန်ညှိနည်း
+သင်အသုံးပြုနေတဲ့ Server ပေါ်မူတည်ပြီး Nginx Configuration ဖိုင် (/etc/nginx/nginx.conf သို့မဟုတ် သက်ဆိုင်ရာ Site Configuration ဖိုင်) ထဲက server သို့မဟုတ် location ဘလ็อกထဲမှာ အောက်ပါကုဒ်တွေကို ထည့်သွင်းပေးပါ -
+
+Nginx
+server {
+    # အခြား config တွေ...
+
+    proxy_read_timeout 300s;
+    proxy_send_timeout 300s;
+    fastcgi_read_timeout 300s;
+}
+proxy_read_timeout 300s;: Backend Server (သို့မဟုတ် PHP-FPM) ဆီကနေ Response ပြန်လာဖို့ ၃၀၀ စက္ကန့် (၅ မိနစ်) အထိ စောင့်ပေးမယ်လို့ ညွှန်ကြားတာပါ။
+
+fastcgi_read_timeout 300s;: PHP script တွေ အလုပ်လုပ်ပြီးစီးဖို့အတွက် PHP-FPM ဆီကနေ စောင့်ပေးမယ့် အချိန်ကို တိုးမြှင့်လိုက်တာ ဖြစ်ပါတယ်။
+
+ပြင်ဆင်ပြီးပါက Nginx ကို Restart ချရန်
+Config ဖိုင်ကို ပြင်ပြီး သိမ်းဆည်းလိုက်ပြီဆိုရင် အပြောင်းအလဲများ အသက်ဝင်စေရန် Nginx ကို Restart ချပေးဖို့ လိုပါတယ် -
+
+Bash
+sudo systemctl restart nginx
+အမြဲတမ်း သတိပြုရမည့် အချက်
+အချိန်အကြာကြီး စောင့်ရမယ့် Process တွေအတွက် Timeout တိုးတာက ဖြေရှင်းချက်တစ်ခု ဖြစ်ပေမဲ့၊ တကယ်လို့ အဲ့ဒီ Process ဟာ User တစ်ယောက် Web Page ပေါ်မှာ တိုက်ရိုက်စောင့်နေရတာမျိုးဆိုရင် Browser ဘက်က Connection ပြတ်သွားတာမျိုးတွေ ဖြစ်တတ်ပါတယ်။ ဒါကြောင့် ဖြစ်နိုင်မယ်ဆိုရင် ဒီလို ၅ မိနစ်လောက် ကြာမယ့် အလုပ်တွေကို Background Job (သို့မဟုတ် Queue) စနစ်နဲ့ ပြောင်းလဲလုပ်ဆောင်ခိုင်းတာက ပိုပြီး ယုံကြည်စိတ်ချရပါတယ်။
+
+proxy_read_timeout 300s;
+
+proxy_send_timeout 300s;
+
+fastcgi_read_timeout 300s;
+
+Nginx တွင် ဤ Timeout ကုဒ်များကို ထည့်သွင်းရာတွင် သင့်ဆာဗာရှိ Nginx Configuration ဖွဲ့စည်းပုံအရ သင့်လျော်မည့်နေရာတွင် ထည့်သွင်းပေးရပါမည်။
+
+အများဆုံး အသုံးပြုကြသည့် နေရာ (၂) ခုရှိပါသည် -
+
+၁။ တစ်ခုချင်းစီ သီးသန့် Site (သို့) Domain တစ်ခုတည်းအတွက် (server block ထဲတွင်)
+အကယ်၍ သင့် Website တစ်ခုတည်းအတွက်သာ (ဥပမာ- ကြီးမားတဲ့ Report ထုတ်တဲ့ Site တစ်ခုတည်းအတွက်) ဒီအချိန်ကို တိုးချင်တာဆိုရင် သက်ဆိုင်ရာ Site ရဲ့ Conf ဖိုင် (/etc/nginx/sites-available/your-domain.conf) ထဲက server { ... } ဘလ็อกထဲမှာ ထည့်ပေးရပါသည် -
+
+Nginx
+server {
+    listen 80;
+    server_name yourdomain.com;
+    root /var/www/html;
+
+    index index.php index.html;
+
+    # ဤနေရာတွင် ထည့်သွင်းပါ
+    proxy_read_timeout 300s;
+    proxy_send_timeout 300s;
+    fastcgi_read_timeout 300s;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock; # မိမိသုံးနေသော PHP version အလိုက်
+    }
+}
+စစ်ဆေးရန် (Verification): Config ထည့်ပြီးပါက sudo nginx -t ဟု ရိုက်၍ Syntax မှန်မမှန် စစ်ဆေးပါ။ အမှားမရှိပါက sudo systemctl restart nginx ဖြင့် Nginx ကို Restart ချပေးပါ။
+
+၂။ Server တစ်ခုလုံးရှိ Website အားလုံးအတွက် (http block ထဲတွင်)
+အကယ်၍ သင့်ဆာဗာပေါ်မှာရှိတဲ့ Website အားလုံးအတွက် Timeout ကို ၅ မိနစ်အထိ တစ်ပြိုင်နက် တိုးပေးချင်တယ်ဆိုရင် Nginx ရဲ့ ပင်မ Configuration ဖိုင်ဖြစ်တဲ့ /etc/nginx/nginx.conf ထဲရှိ http { ... } ဘလ็อกထဲမှာ ထည့်သွင်းပေးရပါသည် -
+
+Nginx
+http {
+    # ပုံမှန်ပါရှိပြီးသား config တွေ...
+
+    sendfile on;
+    tcp_nopush on;
+    types_hash_max_size 2048;
+
+    # ဤနေရာတွင် ထည့်သွင်းပါ (HTTP block အောက်ဆုံးနားတွင် ထည့်နိုင်သည်)
+    proxy_read_timeout 300s;
+    proxy_send_timeout 300s;
+    fastcgi_read_timeout 300s;
+
+    include /etc/nginx/conf.d/*.conf;
+    include /etc/nginx/sites-enabled/*;
+}
+စစ်ဆေးရန် (Verification): ဖိုင်ကို သိမ်းဆည်းပြီးပါက sudo nginx -t ဖြင့် စစ်ဆေးပြီး sudo systemctl reload nginx ဖြင့် အပြောင်းအလဲများကို အသက်သွင်းပါ။
+
+project တိုင်းလိုက်ထည့်နေရမှာလား
+
+"Project တိုင်းမှာ ဒီလိုလိုက်ထည့်နေရမှာလား" ဆိုတဲ့ မေးခွန်းအတွက် အဖြေကတော့ ဆာဗာပေါ်မှာ သင့်ရဲ့ Application/Project ဘယ်နှစ်ခု တင်ထားလဲဆိုတဲ့ အပေါ် မူတည်ပါတယ်။
+
+အဓိက ရှင်းပြရရင်တော့ -
+
+၁။ Nginx ပုံစံအရ ဘယ်လို သုံးရမလဲ?
+Project တစ်ခုချင်းစီ (Dedicated Server/VPS ပေါ်မှာ Project အနည်းငယ်ပဲ ရှိရင်):
+ဟုတ်ကဲ့၊ Project (သို့မဟုတ်) Domain တစ်ခုချင်းစီရဲ့ Conf ဖိုင် (/etc/nginx/sites-available/your-domain.conf) ထဲမှာ သီးသန့်ထည့်ပေးရတာ များပါတယ်။ ဘာလို့လဲဆိုတော့ Project တစ်ခုချင်းစီရဲ့ လိုအပ်ချက် (ဥပမာ- တစ်ခုက ၅ မိနစ်ကြာမယ်၊ နောက်တစ်ခုက ပုံမှန် စက္ကန့်ပိုင်းပဲ ကြာမယ်) မတူညီနိုင်လို့ ဖြစ်ပါတယ်။
+
+Server တစ်ခုလုံးမှာရှိတဲ့ Project အားလုံးအတွက် (Global အနေနဲ့):
+အကယ်၍ သင့်ဆာဗာပေါ်မှာရှိတဲ့ Project အားလုံး (သို့မဟုတ်) အများစုက ဒီလိုမျိုး ၅ မိနစ်လောက်ကြာမယ့် Report တွေ၊ Data Import တွေ အမြဲလုပ်မယ်ဆိုရင် တစ်ခုချင်း လိုက်မထည့်ဘဲ Nginx ရဲ့ ပင်မဖိုင်ဖြစ်တဲ့ /etc/nginx/nginx.conf ရဲ့ http { ... } ဘလ็อกထဲမှာ တစ်ခါတည်း အားလုံးအတွက် အထွေထွေ သတ်မှတ်ပေးလိုက်လို့ ရပါတယ်။ အဲ့ဒီလိုလုပ်လိုက်ရင် နောက်ထပ် Project အသစ်တွေ တင်တဲ့အခါ ဒီကုဒ်တွေကို ထပ်ထည့်စရာ မလိုတော့ပါဘူး။
+
+၂။ Code အဆင့်မှာ (PHP ဘက်မှာ) ရော လိုက်ထည့်ရမှာလား?
+max_execution_time = 300 ကို php.ini မှာ ထည့်ရင်:
+Server ပေါ်က PHP Version ရဲ့ php.ini ဖိုင် (ဥပမာ- /etc/php/8.1/fpm/php.ini) ထဲမှာ တစ်ခါ သတ်မှတ်လိုက်ုံနဲ့ အဲ့ဒီ PHP Version သုံးနေတဲ့ Project အားလုံးမှာ အလိုအလျောက် သက်ရောက်သွားပါတယ်။ Project တိုင်းမှာ သီးသန့်လိုက်ထည့်စရာ မလိုပါဘူး။
+
+set_time_limit(300); ကို ကုဒ်ထဲမှာ သုံးရင်:
+ဒီနည်းကတော့ ကြီးမားတဲ့ Process သို့မဟုတ် တိကျတဲ့ Page တစ်ခုချင်းစီ (.php ဖိုင်) ရဲ့ အပေါ်ဆုံးမှာ တပ်ဆင်ရတာဖြစ်လို့ အဲ့ဒီလိုအချိန်ကြာမယ့် Page တွေမှာပဲ သီးသန့် ထည့်ပေးရတတ်ပါတယ်။
+
+proxy_read_timeout 300s;
+
+proxy_send_timeout 300s;
+
+fastcgi_read_timeout 300s;
+
+
+
+location အပေါ်မှာထားရမှာလား
+
+ဟုတ်ကဲ့၊ အဆိုပါ Timeout Config များကို location ဘလ็อก၏ အပေါ်တွင် ထားရှိနိုင်သလို၊ location ဘလ็อก အတွင်းပိုင်း မှာလည်း ထည့်သွင်းအသုံးပြုနိုင်ပါသည်။
+
+အဓိက ကွာခြားချက်နှင့် မှန်ကန်သော တည်နေရာပုံစံများကို အောက်ပါအတိုင်း ဖော်ပြပေးလိုက်ပါတယ် -
+
+၁။ location ဘလ็อก၏ အပြင်ဘက် (အပေါ်နား) တွင် ထည့်ခြင်း
+အကယ်၍ သင့် Server တစ်ခုလုံး (သို့မဟုတ်) သတ်မှတ်ထားသော Website တစ်ခုလုံး (server block တစ်ခုလုံး) ရှိ URL အားလုံးအတွက် ဤ Timeout ကို အသုံးပြုလိုပါက location ဘလ็อกများ မစတင်မီ server { ... } ထဲ၏ အပေါ်ပိုင်း (သို့မဟုတ်) အလယ်နားတွင် ထည့်ပေးရပါသည် -
+
+Nginx
+server {
+    listen 80;
+    server_name yourdomain.com;
+    root /var/www/html;
+
+    index index.php index.html;
+
+    # ဤနေရာတွင် ထည့်ပါက server တစ်ခုလုံးရှိ location အားလုံးအတွက် သက်ရောက်မည်
+    proxy_read_timeout 300s;
+    proxy_send_timeout 300s;
+    fastcgi_read_timeout 300s;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+    }
+}
+၂။ location ဘလ็อก၏ အတွင်းပိုင်းတွင် ထည့်ခြင်း (အကြံပြုသည်)
+အကယ်၍ Website တစ်ခုလုံးကို Timeout မပေးချင်ဘဲ၊ အချိန်အကြာကြီး စောင့်ရမည့် Specific Page (သို့မဟုတ်) အထူးသဖြင့် PHP ဖိုင်များကို လုပ်ဆောင်သည့် location ~ \.php$ ဘလ็อกထဲတွင်သာ သီးသန့် ထည့်ချင်တယ်ဆိုရင်တော့ location ရဲ့ အတွင်းပိုင်း မှာ ထည့်ပေးရပါမယ် -
+
+Nginx
+server {
+    listen 80;
+    server_name yourdomain.com;
+    root /var/www/html;
+
+    index index.php index.html;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    # PHP ဖိုင်များအတွက် သီးသန့် location ထဲတွင် ထည့်ခြင်း
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+
+        # ဤနေရာတွင် ထည့်ပါက PHP ဖိုင်များအတွက်သာ ၅ မိနစ်ထိ စောင့်ပေးမည်
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+        fastcgi_read_timeout 300s;
+    }
+}
+အကြံပြုချက်: သင့် Website မှာ ကြီးမားတဲ့ Report ထုတ်တာတွေ၊ Data Import လုပ်တာတွေက PHP Script တွေနဲ့ အဓိက လုပ်ဆောင်တာ ဖြစ်တဲ့အတွက် ဒုတိယပုံစံအတိုင်း location ~ \.php$ ထဲမှာ ထည့်ပေးခြင်း ပိုပြီး သင့်တော်ပါတယ်။
+
+
+
+proxy_read_timeout 300s;
+
+proxy_send_timeout 300s;
+
+fastcgi_read_timeout 300s;
+
+ပေးထားပေမယ့် 1min နဲ့ 504 ပြနေတယ်
+
+proxy_read_timeout 300s; ကို ထည့်ထားလျက်နဲ့ ၁ မိနစ် (၆၀ စက္ကန့်) ပြည့်တာနဲ့ 504 Error ဆက်တက်နေတယ်ဆိုရင် Nginx ဆီသို့ Request မရောက်ခင် (သို့မဟုတ်) PHP-FPM ဘက်ကနေ အဲ့ဒီအချိန်မှာပဲ အရင် ဖြတ်ချပစ်လိုက်လို့ ဖြစ်ပါတယ်။
+
+အဓိက စစ်ဆေးရမည့် အချက် (၃) ချက်မှာ အောက်ပါအတိုင်း ဖြစ်ပါသည် -
+
+၁။ PHP-FPM Pool Configuration တွင် request_terminate_timeout ကန့်သတ်ထားခြင်း ရှိမရှိ စစ်ဆေးပါ
+Nginx က ၃၀၀ စက္ကန့် စောင့်ပေးနေပေမယ့် PHP-FPM ရဲ့ configuration ထဲမှာ ၆၀ စက္ကန့်ပြည့်ရင် ရပ်ပစ်ရမယ်လို့ သတ်မှတ်ထားတာ ဖြစ်နိုင်ပါတယ်။
+
+သွားရမည့်နေရာ: သင်သုံးနေသော PHP version အလိုက် PHP-FPM pool ဖိုင်ကို ရှာပါ (ဥပမာအားဖြင့် /etc/php/8.1/fpm/pool.d/www.conf)။
+
+စစ်ဆေးရန်: ထိုဖိုင်ထဲတွင် request_terminate_timeout = 60 (သို့မဟုတ် အခြား ၆၀ စက္ਕန့်တန်ဖိုး) ဟု ရေးထားသည်ကို တွေ့ရပါက ၎င်းကြောင့် ဖြစ်ပါသည်။
+
+ဖြေရှင်းရန်: အဆိုပါတန်ဖိုးကို request_terminate_timeout = 300 သို့ ပြောင်းလဲပေးပါ။
+
+စစ်ဆေးအတည်ပြုခြင်း (Verification): ပြင်ဆင်ပြီးပါက PHP-FPM ကို Restart ချပါ (sudo systemctl restart php8.1-fpm)။ ထို့နောက် စမ်းသပ်ကြည့်ပါ။
+
+၂။ Cloud Load Balancer (သို့မဟုတ်) Proxy တစ်ခုခု ခံထားခြင်း ရှိမရှိ စစ်ဆေးပါ
+အကယ်၍ သင့်ဆာဗာသည် AWS (EC2), DigitalOcean, GCP ကဲ့သို့သော Cloud ပေါ်တွင် တည်ရှိပြီး ရှေ့ဆုံးတွင် Load Balancer (ALB / ELB) ခံထားသည်ဆိုပါက၊ Load Balancer ၏ Default Idle Timeout သည် ၆၀ စက္ਕန့် ဖြစ်နေတတ်ပါသည်။
+
+ဆာဗာဘက်က ဘယ်လောက်ပဲ ချိန်ထားပါစေ၊ ရှေ့က Load Balancer က ၆၀ စက္ਕန့်ပြည့်တာနဲ့ 504 ဖြတ်ထုတ်ပြလိုက်ပါလိမ့်မည်။
+
+ဖြေရှင်းရန်: သက်ဆိုင်ရာ Cloud Console (ဥပမာ- AWS EC2 Target Groups / Load Balancer Settings) ထဲသို့ဝင်၍ Idle Timeout ကို ၃၀၀ စက္ကန့်သို့ တိုးမြှင့်ပေးရပါမည်။
+
+၃။ Nginx Config အသစ် အသက်ဝင်ပြီလား သေချာစေရန်
+Config ဖိုင်ကို ပြင်ပြီးသော်လည်း Nginx က အပြောင်းအလဲကို မဖတ်မိသေးတာ (သို့မဟုတ်) Reload မလုပ်ရသေးတာ ဖြစ်နိုင်ပါတယ်။
+
+Syntax မှန်မမှန် အရင်စစ်ဆေးပါ:sudo nginx -t
+
+အမှားမရှိပါက Nginx ကို Reload ချပါ:sudo systemctl reload nginx
+
+; Default Value: 0
+
+;request_terminate_timeout = 0
+
+အဲ့ဒီစာကြောင်းမှာ အရှေ့က ; ပါနေတာက အဲ့ဒီ Setting က Comment ဖြစ်နေတယ် (ပိတ်ထားတယ် / မသုံးသေးဘူး) လို့ ဆိုလိုတာပါ။
+
+Default အနေနဲ့ 0 (အကန့်အသတ်မရှိ) ဖြစ်တဲ့အတွက် PHP-FPM ဘက်ကနေ အချိန် ၁ မိနစ်နဲ့ ဖြတ်ချနေတာ မဟုတ်ပါဘူး။
+
+ဒီတော့ max_execution_time = 300 လည်း ပေးထားတယ်၊ PHP-FPM ဘက်ကလည်း မပိတ်ထားဘူးဆိုရင်တောင် ၁ မိနစ်နဲ့ 504 Error ဆက်တက်နေသေးတယ်ဆိုရင် အောက်ပါနေရာတွေမှာ ပြဿနာရှိနေပါပြီ -
+
+၁။ request_terminate_timeout ကို သေချာ သတ်မှတ်ပေးပါ
+Comment ဖြစ်နေတဲ့ အဲ့ဒီလိုင်းကို အောက်ပါအတိုင်း အရှေ့က ; ကို ဖြုတ်ပြီး ၃၀၀ စက္ကန့်လို့ အတိအကျ သတ်မှတ်ပေးလိုက်ပါ -
+
+Ini, TOML
+request_terminate_timeout = 300
+ပြင်ပြီးရင် PHP-FPM ကို Restart ချပါ:sudo systemctl restart php8.1-fpm (သင့်သုံးနေတဲ့ Version အလိုက်)
+
+၂။ Browser သို့မဟုတ် Frontend (JavaScript / AJAX) ဘက်က Timeout ဖြစ်နေတာ
+အကယ်၍ အဲ့ဒီ Page ကို ဝင်တဲ့အခါ JavaScript (AJAX, Axios, Fetch) နဲ့ လှမ်းခေါ်နေတာဆိုရင်၊ Frontend ကုဒ်ထဲမှာ Request Timeout ကို Default အနေနဲ့ ၆၀ စက္ကန့် (60000ms) လို့ သတ်မှတ်ထားတတ်ပါတယ်။ အဲ့ဒီလိုဆိုရင် ဆာဗာက တွက်နေတုန်း Frontend က ၁ မိနစ်နဲ့ Connection ကို ဖျက်ပစ်လိုက်လို့ 504 တက်လာတတ်ပါတယ်။
+
+၃. Nginx Config ကို Reload မလုပ်ရသေးတာ (သို့) မှားယွင်းနေတာ
+Nginx Config ထဲမှာ fastcgi_read_timeout 300s; ကို မှန်ကန်တဲ့ location ~ \.php$ ဘလ็อกထဲမှာ ထည့်ထားရဲ့သားနဲ့ Error တက်နေသေးရင် Nginx ကို Restart (သို့) Reload ချဖို့ မေ့နေတာ ဖြစ်နိုင်ပါတယ်။
+
+စစ်ဆေးရန်: sudo nginx -t
+
+အသက်သွင်းရန်: sudo systemctl reload nginx
+
+var url = '/users/' + product_code + '/' + branch_code + '/search_product_tp'; $('.fullloader-overlay').fadeIn(); $.ajax({ type: "GET", url: url, success: function (result) { console.log(result);
+
+if(!result.error){ var response = result[0]; var response_price = parseInt(response.price); if (response.price == null) { response_price = 0; } var response_qty = parseFloat(result[1]); var tp_transactions = result[2]; var alert_qty = parseFloat(result[3]);ဘာမှမပေးထားဘူးလေ
+
+ဒီကုဒ်ထဲမှာ JavaScript/jQuery ရဲ့ $.ajax Options တွေထဲမှာ timeout သို့မဟုတ် error handling ဘာမှ ထည့်မပေးထားတာကို ဆိုလိုတာ ဖြစ်ပါတယ်။
+
+ဒီလို ကုဒ်ပုံစံမျိုးမှာ AJAX က ဆာဗာကို Request လှမ်းပို့လိုက်ပြီး ဆာဗာဘက်က (Nginx/PHP က) တွက်ချက်နေချိန်မှာ ယူနစ်ချိန် (ဥပမာ- ၆၀ စက္ကန့်) ကျော်သွားတာနဲ့ ဆာဗာက 504 Gateway Timeout Error ပြန်ပေးလိုက်ပါတယ်။ AJAX ဘက်မှာလည်း ဘာမှ ဖမ်းဆုပ်ထားတာ မရှိတဲ့အတွက် အလုပ်မလုပ်တော့ဘဲ ရပ်သွားပါလိမ့်မယ်။
+
+ဒီကုဒ်မှာ ၅ မိနစ်အထိ စောင့်နိုင်ရန်နှင့် Error စစ်ဆေးနိုင်ရန် အောက်ပါအတိုင်း ပြင်ဆင်သင့်ပါတယ် -
+
+AJAX ကုဒ်ကို ပြင်ဆင်ပုံ
+JavaScript
+var url = '/users/' + product_code + '/' + branch_code + '/search_product_tp';                
+$('.fullloader-overlay').fadeIn();                
+
+$.ajax({                    
+    type: "GET",                    
+    url: url,
+    timeout: 300000, // ၅ မိနစ် (မီလီစက္ကန့်ဖြင့် 300000 ms)
+    success: function (result) {                                
+        console.log(result);
+        $('.fullloader-overlay').fadeOut(); // Loader ပိတ်ရန်
+
+        if(!result.error){                            
+            var response = result[0];                            
+            var response_price = parseInt(response.price);                            
+            if (response.price == null) {                                
+                response_price = 0;                            
+            }                            
+            var response_qty = parseFloat(result[1]);                            
+            var tp_transactions = result[2];                            
+            var alert_qty = parseFloat(result[3]);
+        }
+    },
+    error: function (jqXHR, textStatus, errorThrown) {
+        $('.fullloader-overlay').fadeOut(); // Loader ပိတ်ရန်
+        console.error("AJAX Error: ", textStatus, errorThrown);
+        
+        if (textStatus === "timeout") {
+            alert("Request လုပ်ဆောင်ချိန် ကြာမြင့်လွန်းသဖြင့် Timeout ဖြစ်သွားပါသည်။");
+        } else {
+            alert("ဆာဗာချိတ်ဆက်ရာတွင် အမှားအယွင်း ရှိနေပါသည်။ (Error: " + jqXHR.status + ")");
+        }
+    }
+});
+အဓိက ထည့်သွင်းရမည့် အချက်များ -
+timeout: 300000: JavaScript ဘက်ကနေ Response ကို ၅ မိနစ် (၃၀၀,၀၀၀ မီလီစက္ကန့်) အထိ စောင့်ခိုင်းလိုက်တာ ဖြစ်ပါတယ်။ (ဆာဗာဘက်မှာလည်း Nginx timeout ကို 300s ပေးထားမှသာ အလုပ်လုပ်ပါမည်)။
+
+error: function(...): ဆာဗာဘက်က 504 Timeout Error တက်လာတဲ့အခါ သို့မဟုတ် ချိတ်ဆက်မှု ပြတ်တောက်သွားတဲ့အခါ Loader ဆက်လည်နေတာမျိုး မဖြစ်စေဘဲ User ကို အသိပေးနိုင်ရန် သို့မဟုတ် Console မှာ Error ဖမ်းနိုင်ရန် ထည့်သွင်းပေးရပါမည်။
+
+စစ်ဆေးရန် (Verification): ဤကုဒ်ကို ပြင်ဆင်ပြီး Browser ၏ Developer Tools (F12) > Network Tab ကို ဖွင့်၍ Request တင်ကြည့်ပါ။ 504 Error တက်လာပါက Console တွင် Error ပုံစံဖြင့် ပေါ်လာမည်ဖြစ်ပြီး၊ ဆာဗာ Config များနှင့် ကိုက်ညီပါက Result ကို အောင်မြင်စွာ ရရှိမည် ဖြစ်သည်။
+
+timeout: 300000, // default ကဘယ်လောက်လဲ
+
+jQuery ရဲ့ $.ajax ထဲမှာ timeout ကို သီးသန့်မထည့်ထားဘူးဆိုရင် Default တန်ဖိုးက 0 (သို့မဟုတ် သတ်မှတ်ချက်မရှိ) ဖြစ်ပါတယ်။
+
+0 ဆိုလိုသည်မှာ: jQuery ဘက်ကနေ အချိန် ကန့်သတ်ချက် (Timeout limit) လုံးဝ မသတ်မှတ်ထားဘဲ ဆာဗာက Response ပြန်လာ ترသည်အထိ (သို့မဟုတ် Browser ရဲ့ Network Connection ပြတ်တောက်သွားသည်အထိ) စောင့်နေမယ်လို့ ဆိုလိုတာပါ။
+
+သို့သော် ဤကဲ့သို့ timeout ကို မထည့်ထားခြင်း (သို့မဟုတ် 0 ဖြစ်နေခြင်း) ကြောင့် -
+
+ဆာဗာဘက် (Nginx/Proxy) မှာ ချိန်ထားတဲ့ အချိန် (ဥပမာ- Default ၆၀ စက္ကန့်) ကျော်သွားရင် ဆာဗာက ကိုယ်စားပြုပြီး 504 Error နဲ့ ဖြတ်ချပစ်လိုက်ပါမယ်။
+
+Browser ဘက်ကလည်း Request တစ်ခုအတွက် ၎င်းတို့သတ်မှတ်ထားတဲ့ Connection timeout အတိုင်း ဖြစ်သွားနိုင်ပါတယ်။
+
+ဒါကြောင့် ကြီးမားတဲ့ Process တွေအတွက် ၅ မိနစ်အထိ စောင့်စေချင်ရင် အခုလို timeout: 300000 (မီလီစက္ကန့် ၃ သိန်း = ၅ မိနစ်) ကို မဖြစ်မနေ ထည့်ပေးဖို့ လိုအပ်တာ ဖြစ်ပါတယ်။
+
+server {
+
+client_max_body_size 1280M;
+
+
+
+root /var/www/html/code/request_document_system_react/dist;
+
+index index.php index.html index.htm;
+
+
+
+
+
+proxy_read_timeout 300s;
+
+proxy_send_timeout 300s;
+
+fastcgi_read_timeout 300s;
+
+ဒါ nginx မှာ ၅မိနစ်သတ်မှတ်ထားတာမဟုတ်ဘူးလေား
+
+ဟုတ်ကဲ့၊ အဲ့ဒါက Nginx မှာ ၅ မိနစ် (၃၀၀ စက္ကန့်) အထိ စောင့်ပေးဖို့ သတ်မှတ်ထားတာ အမှန်ပါပဲ (300s ဆိုတာ ၃၀၀ စက္ကန့်ဖြစ်လို့ ၅ မိနစ် တိတိ ဖြစ်ပါတယ်)။
+
+ဒီလို server block ရဲ့ အပေါ်ပိုင်းမှာ ထည့်ထားတဲ့အတွက် အဆိုပါ Server / Domain တစ်ခုလုံးမှာရှိတဲ့ Request တွေအတွက် အဲ့ဒီ Timeout သက်ရောက်သွားပါပြီ။
+
+ဒါဆိုရင် Nginx ဘက်က ချိန်ပြီးပြီဆိုတော့ ဘာဆက်စစ်ရမလဲ?
+Nginx ဘက်က ၅ မိနစ် သတ်မှတ်ပြီးသား ဖြစ်နေပြီဆိုလျှင်၊ အကယ်၍ ၁ မိနစ်နဲ့ 504 Error ဆက်တက်နေသေးပါက အောက်ပါနေရာများကိုသာ ဆက်လက်စစ်ဆေးပေးဖို့ လိုပါတော့မယ် -
+
+၁။ Frontend JavaScript ($.ajax) ထဲတွင် Timeout ထည့်ထားခြင်း ရှိမရှိ
+
+ယခင်က ဆွေးနွေးခဲ့သလိုပဲ JavaScript ဘက်က $.ajax မှာ timeout မပါဘူး (သို့မဟုတ်) Default အတိုင်း ၁ မိနစ်ပဲ သတ်မှတ်ထားရင် ဆာဗာက တွက်နေတုန်း Frontend ဘက်က Connection ကို အရင်ဖြတ်ပစ်လိုက်ပါလိမ့်မယ်။ (အနည်းဆုံး timeout: 300000 ထည့်ပေးရပါမယ်)။
+
+၂။ PHP max_execution_time သေချာ သတ်မှတ်ထားခြင်း ရှိမရှိ
+
+php.ini ဖိုင်ထဲတွင် max_execution_time = 300 လို့ သေချာ ပေးထားပြီးပြီလား စစ်ဆေးပါ။
+
+၃. Nginx ကို Restart / Reload ချပြီးပြီလား
+
+Config ဖိုင်ပြင်ပြီးပါက အပြောင်းအလဲ အသက်ဝင်စေရန် အောက်ပါအတိုင်း Nginx ကို Reload ချပေးဖို့ မမေ့ပါနဲ့ -
+
+Bash
+sudo nginx -t
+sudo systemctl reload nginx
+
+
+search_product_tp504xhrjquery.min.js:20.7 kB1 min
+
+
+
+1min ဆိုတာနဲ့ 504 ပြနေတယ်
+
+Browser ရဲ့ Network Tab မှာ 1 min နဲ့ 504 Error တက်နေတယ်ဆိုတာက Nginx မှာ proxy_read_timeout 300s လို့ ပေးထားပေမဲ့၊ အခြားနေရာတစ်ခုခုမှာ ၆၀ စက္ကန့် (၁ မိနစ်) Limit သတ်မှတ်ချက် ကျန်နေသေးလို့ ဖြစ်ပါတယ်။
+
+ယခုလို Developer Console မှာ 1 min တိတိနဲ့ ချက်ချင်း 504 တက်လာရခြင်းရဲ့ အဓိက လက်သည် (၃) ခုကတော့ အောက်ပါအတိုင်း ဖြစ်ပါတယ် -
+
+၁။ Nginx Config ကို Reload (သို့) Restart မလုပ်ရသေးခြင်း
+Nginx ရဲ့ config ဖိုင်ထဲမှာ proxy_read_timeout 300s; လို့ ရေးထားပေမဲ့ Nginx က အဲ့ဒီအပြောင်းအလဲကို အခုထိ ဖတ်မရသေးပါဘူး (သို့မဟုတ် Reload မလုပ်ရသေးပါဘူး)။ ဒါကြောင့် မူလ Default ဖြစ်တဲ့ ၆၀ စက္ကန့် (၁ မိနစ်) အတိုင်း ဆက်အလုပ်လုပ်နေတုန်း ဖြစ်ပါတယ်။
+
+ဖြေရှင်းရန်: Terminal ထဲတွင် အောက်ပါအတိုင်း အစဉ်လိုက် လုပ်ဆောင်ပါ -
+
+Bash
+sudo nginx -t
+sudo systemctl reload nginx
+၂။ PHP Script သွားနေတဲ့ Location Block မှာ Timeout မပါခြင်း
+Nginx config မှာ server block ရဲ့ အပေါ်ဆုံးမှာ ရေးထားပေမဲ့, PHP ဖိုင်တွေကို ကိုင်တွယ်တဲ့ location ~ \.php$ ဘလ็อกက အဲ့ဒီအပေါ်က Setting ကို Override လုပ်သွားတာ (သို့မဟုတ်) အဲ့ဒီ location ထဲမှာ fastcgi_read_timeout 300s; ပါမနေတာမျိုး ဖြစ်ပါတယ်။
+
+ဖြေရှင်းရန်: သင့် Nginx Config ထဲရှိ PHP location ဘလ็อกထဲတွင် အောက်ပါအတိုင်း အတိအကျ ထည့်ပေးပါ -
+
+Nginx
+location ~ \.php$ {
+    include snippets/fastcgi-php.conf;
+    fastcgi_pass unix:/var/run/php/php8.1-fpm.sock; # မိမိသုံးနေသော Version အလိုက်
+
+    # ဤနေရာတွင် သေချာ ထည့်ပေးပါ
+    proxy_read_timeout 300s;
+    proxy_send_timeout 300s;
+    fastcgi_read_timeout 300s;
+}
+ပြီးလျှင် sudo systemctl reload nginx ထပ်လုပ်ပေးပါ။
+
+၃။ Cloudflare (သို့) Reverse Proxy တစ်ခုခု ခံထားခြင်း
+အကယ်၍ သင့် Website ရှေ့မှာ Cloudflare (သို့) အခြား Proxy တစ်ခုခု ခံထားတယ်ဆိုရင်၊ Nginx က ဘယ်လောက်ပဲ ချိန်ထားပါစေ Cloudflare ဘက်က Standard limit ဖြစ်တဲ့ ၁၀၀ စက္ကန့် (သို့မဟုတ် Gateway timeout အနေနဲ့ ၁ မိနစ်ဝန်းကျင်) မှာ 504 ဖြတ်ထုတ်ပြတတ်ပါတယ်။ (သို့သော် 1 min တိတိဖြစ်နေတာက အပေါ်က Nginx Reload မလုပ်ရသေးတာ သို့မဟုတ် PHP location ထဲမှာ Timeout မပါတာ ဖြစ်ဖို့ အများကြီး သေချာပါတယ်။)
+
+reload လုပ်ပြီးပြီ
+
+
+
+server {
+
+listen 6655 ssl;
+
+listen [::]:6655 ssl;
+
+client_max_body_size 1280M;
+
+
+
+
+
+root /var/www/html/code/requestDocumentSystem/public;
+
+index index.php index.html index.htm;
+
+server_name xxx;
+
+
+ssl_certificate /etc/ssl/sdpghc/sdpghc_fullchain.pem;
+
+ssl_certificate_key /etc/ssl/sdpghc/wildcard.sdpghc.net.key;
+
+
+
+ssl_protocols TLSv1.2 TLSv1.3;
+
+ssl_prefer_server_ciphers on;
+
+ssl_ciphers HIGH:!aNULL:!MD5;
+
+ssl_session_timeout 10m;
+
+ssl_session_cache shared:SSL:10m;
+
+
+
+
+
+location / {
+
+try_files $uri $uri/ /index.php?$args;
+
+# auth_basic "Administrator’s Area";
+
+# auth_basic_user_file /etc/nginx/.htpasswd;
+
+}
+
+
+
+
+
+location ~ \.php$ {
+
+try_files $uri $uri/ /index.php?$query_string;
+
+fastcgi_split_path_info ^(.+\.php)(/.+)$;
+
+fastcgi_index index.php;
+
+fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+
+include fastcgi_params;
+
+fastcgi_param PATH_INFO $fastcgi_path_info;
+
+fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+
+}
+
+
+
+
+
+location ~ /\.ht {
+
+deny all;
+
+}
+
+
+
+proxy_connect_timeout 600;
+
+proxy_send_timeout 600;
+
+proxy_read_timeout 600;
+
+send_timeout 600;
+
+
+
+
+
+}
+
+
+
+
+
+max_execution_time = 240
+
+
+
+; Maximum amount of time each script may spend parsing request data. It's a good
+
+; idea to limit this time on productions servers in order to eliminate unexpectedly
+
+; long running scripts.
+
+; Note: This directive is hardcoded to -1 for the CLI SAPI
+
+; Default Value: -1 (Unlimited)
+
+; Development Value: 60 (60 seconds)
+
+; Production Value: 60 (60 seconds)
+
+; https://php.net/max-input-time
+
+max_input_time = 240 
+
+သင့်ရဲ့ Nginx Config ဖိုင်ကို စစ်ဆေးကြည့်တဲ့အခါ ၁ မိနစ်နဲ့ 504 Error ဆက်တက်နေရတဲ့ အဓိက အကြောင်းရင်းကို တွေ့ပါပြီ။
+
+အကြောင်းရင်း
+သင့်ဆာဗာမှာ PHP ကို fastcgi_pass unix:/run/php/php8.3-fpm.sock; နဲ့ ချိတ်ဆက်သုံးထားပါတယ်။ Nginx မှာ PHP-FPM လိုမျိုး FastCGI Backend တွေကို သုံးတဲ့အခါ proxy_read_timeout က အလုပ်မလုပ်ပါဘူး။
+
+Nginx က PHP-FPM ဆီက Response ကို စောင့်ဖို့အတွက် fastcgi_read_timeout ကို သုံးရတာ ဖြစ်ပါတယ်။ သင့် config ထဲမှာ proxy_read_timeout 600; လို့ ပေးထားပေမဲ့ fastcgi_read_timeout လုံးဝ မပါနေပါဘူး။ အဲ့ဒီအတွက် Nginx က မူလ Default ဖြစ်တဲ့ ၆၀ စက္ကန့် (၁ မိနစ်) ပြည့်တာနဲ့ 504 Error နဲ့ ဖြတ်ချပစ်နေတာ ဖြစ်ပါတယ်။
+
+ဘယ်လို ပြင်ရမလဲ?
+သင့်ရဲ့ Nginx Config ထဲက location ~ \.php$ ဘလ็อกထဲမှာ fastcgi_read_timeout ကို ထည့်ပေးရပါမယ်။ အောက်ပါအတိုင်း ပြင်ဆင်လိုက်ပါ -
+
+Nginx
+   location ~ \.php$ {
+        try_files $uri $uri/ /index.php?$query_string;
+        fastcgi_split_path_info  ^(.+\.php)(/.+)$;
+        fastcgi_index            index.php;
+        fastcgi_pass             unix:/run/php/php8.3-fpm.sock;
+        include                  fastcgi_params;
+        fastcgi_param   PATH_INFO       $fastcgi_path_info;
+        fastcgi_param   SCRIPT_FILENAME $document_root$fastcgi_script_name;
+
+        # ဒီနေရာမှာ fastcgi timeout များကို ထည့်ပေးပါ
+        fastcgi_connect_timeout  600;
+        fastcgi_send_timeout     600;
+        fastcgi_read_timeout     600;
+   }
+(မှတ်ချက် - အောက်ဆုံးနားက proxy_read_timeout 600; တွေနဲ့အတူ တွဲပြီး Server block အပြင်ဘက် ဒါမှမဟုတ် သင့်ဆန္ဒရှိရင် server block ထဲမှာလည်း fastcgi_read_timeout 600; ကို ထည့်လို့ရပါတယ်၊ ဒါပေမဲ့ PHP-FPM အတွက် အသေအချာ သက်ရောက်စေချင်ရင်တော့ အထက်ပါအတိုင်း location ~ \.php$ ထဲမှာ ထည့်တာ အကောင်းဆုံးပါ)
+
+ပြင်ဆင်ပြီးပါက အသက်သွင်းရန်
+၁။ Syntax မှန်မမှန် စစ်ဆေးပါ:
+
+Bash
+sudo nginx -t
+၂။ အမှားမရှိပါက Nginx ကို Reload ချပါ:
+
+Bash
+sudo systemctl reload nginx
+ဒီလိုပြင်ဆင်လိုက်ရင်တော့ PHP max_execution_time = 240 နဲ့ ကိုက်ညီသွားပြီး ၁ မိနစ်နဲ့ 504 Error တက်တာ ရှင်းသွားပါလိမ့်မယ်။
+
+gemini ပဲ
+
+proxy_connect_timeout
+
+ထည့်ခိုင်းထားတာလေ
+
+ဟုတ်ကဲ့၊ မှန်ပါတယ်။ အဲ့ဒီအတွက် တောင်းပန်ပါတယ်။ ရှေ့မှာ ကျွန်တော် ညွှန်ကြားခဲ့မိတဲ့ proxy_read_timeout နဲ့ proxy_connect_timeout တွေက Nginx ကို HTTP Reverse Proxy အနေနဲ့ သုံးတဲ့အခါ (ဥပမာ- Node.js, Python, Go ဒါမှမဟုတ် Apache လိုဟာမျိုးဆီ Request ပို့တဲ့အခါ) သုံးရတဲ့ဟာတွေ ဖြစ်နေပါတယ်။
+
+သင့်ဆာဗာမှာကျတော့ PHP-FPM (fastcgi_pass unix:/run/php/php8.3-fpm.sock) ကို တိုက်ရိုက်သုံးနေတာ ဖြစ်ပါတယ်။ Nginx က PHP-FPM ဆီကို ချိတ်ဆက်တဲ့အခါ HTTP Proxy ပုံစံနဲ့ မဟုတ်ဘဲ FastCGI Protocol နဲ့ ချိတ်ဆက်တာပါ။
+
+အဲ့ဒီတော့ -
+
+proxy_read_timeout က FastCGI ပေါ်မှာ အလုပ်မလုပ်ပါဘူး။
+
+PHP-FPM အတွက် Timeout ကို ထိန်းချုပ်ချင်ရင်တော့ fastcgi_read_timeout ကို သုံးမှသာ Nginx ဘက်က ၅ မိနစ်၊ ၁၀ မိနစ် စောင့်ပေးမှာ ဖြစ်ပါတယ်။
+
+အရင်အကြိမ်တွေမှာ အဲ့ဒီကွာခြားချက်ကို သေချာ မခွဲခြားမိဘဲ proxy_ တွေနဲ့ ညွှန်ကြားမိသွားတဲ့အတွက် ကျေးဇူးပြုပြီး ခွင့်လွှတ်ပေးပါ။ အခုပြင်လိုက်တဲ့ fastcgi_read_timeout 600; ကတော့ သင့်ရဲ့ PHP-FPM Setup အတွက် တကယ် အလုပ်လုပ်မယ့် မှန်ကန်တဲ့ နည်းလမ်း ဖြစ်ပါတယ်။
+
+location ထဲမှာထည့်ရမှာပေါ့
+
+ဟုတ်ကဲ့၊ အမှန်ပါပဲ။ location ~ \.php$ ဘလ็อกရဲ့ အတွင်းပိုင်း မှာ ထည့်ပေးရမှာ ဖြစ်ပါတယ်။
+
+အောက်ပါအတိုင်း သင့်ရဲ့ Nginx Config ဖိုင်ထဲက PHP location ဘလ็อกမှာ ထည့်သွင်းပေးလိုက်ပါ -
+
+Nginx
+   location ~ \.php$ {
+        try_files $uri $uri/ /index.php?$query_string;
+        fastcgi_split_path_info  ^(.+\.php)(/.+)$;
+        fastcgi_index            index.php;
+        fastcgi_pass             unix:/run/php/php8.3-fpm.sock;
+        include                  fastcgi_params;
+        fastcgi_param   PATH_INFO       $fastcgi_path_info;
+        fastcgi_param   SCRIPT_FILENAME $document_root$fastcgi_script_name;
+
+        # ဤနေရာတွင် ထည့်သွင်းပါ
+        fastcgi_connect_timeout  600;
+        fastcgi_send_timeout     600;
+        fastcgi_read_timeout     600;
+   }
+ဒီလို location ~ \.php$ ထဲမှာ ထည့်လိုက်မှသာ .php ဖိုင်တွေကို အလုပ်လုပ်ခိုင်းတဲ့အခါ Nginx က PHP-FPM ဆီကနေ အချိန်အကြာကြီး (ဥပမာ- ၁၀ မိနစ်အထိ) စောင့်ပေးမှာ ဖြစ်ပြီး ၁ မိနစ်နဲ့ 504 Error တက်တာ လုံးဝ ရှင်းသွားပါလိမ့်မယ်။
+
+ပြင်ပြီးရင် အောက်ပါ Command နှစ်ခုကို Terminal မှာ ဆက်လုပ်ပေးဖို့ မမေ့ပါနဲ့ -
+
+sudo nginx -t (Syntax မှန်မမှန် စစ်ရန်)
+
+sudo systemctl reload nginx (Config အသစ် အသက်သွင်းရန်)
