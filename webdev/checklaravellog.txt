@@ -1,0 +1,1 @@
+tail -n 1000 storage/logs/laravel.log > storage/logs/laravel_last_1000.log
