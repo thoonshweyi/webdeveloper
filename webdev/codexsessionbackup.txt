@@ -1,0 +1,52 @@
+cli မဟုတ်ဘူး code extention backup
+အော်၊ VS Code ထဲက OpenAI Codex Extension ကို ပြောတာနော်။ CLI မဟုတ်ပါဘူး။
+
+Ubuntu မှာ Codex Extension ရဲ့ Chat Session တွေကို Backup ယူဖို့ အောက်ပါအတိုင်းလုပ်ပါ။
+
+1. VS Code ကို အရင်ပိတ်ပါ
+2. Backup ယူပါ
+Terminal မှာ run ပါ။
+
+mkdir -p ~/codex-vscode-backup
+
+cp -a ~/.codex ~/codex-vscode-backup/
+
+ဒီနည်းက Codex Extension ရဲ့ local data အားလုံးကို Backup ယူတာပါ။
+
+အရေးကြီးတဲ့ data တွေက -
+
+File / Folder
+
+အသုံးဝင်ပုံ
+
+sessions/
+
+Chat transcript များ
+
+state_*.sqlite
+
+Session metadata / history state
+
+session_index.jsonl
+
+Session index
+
+archived_sessions/
+
+Archived sessions
+
+Extension version အလိုက် storage ပုံစံ ကွာနိုင်ပါတယ်။ 
+
+GitHub
++1
+
+3. ZIP Backup လုပ်ပါ
+cd ~
+zip -r codex-vscode-backup.zip codex-vscode-backup/
+
+4. Backup စစ်ပါ
+ls -lh ~/codex-vscode-backup.zip
+
+သတိ: ~/.codex ကို Backup ယူထားတာဖြစ်လို့ API credentials နဲ့ authentication data တွေပါနိုင်ပါတယ်။ လုံခြုံစွာ သိမ်းပါ။
+
+ဒီ Backup ကို နောက်တစ်ခါ VS Code ပြန်သွင်းတဲ့အခါ Session အဟောင်းတွေ ပြန်ယူဖို့ အသုံးပြုနိုင်ပါတယ်။ SQLite database နဲ့ extension version မတူညီမှုကြောင့် ပြန်ယူပြီးတာနဲ့ history အားလုံး ပြန်ပေါ်မယ်လို့တော့ အာမမခံနိုင်ပါဘူး။
